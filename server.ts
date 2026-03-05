@@ -1,8 +1,10 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import Database from "better-sqlite3";
-
+import dotenv from "dotenv";
 import path from "path";
+
+dotenv.config();
 
 const dbPath = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, "crypto_casino.db") : "crypto_casino.db";
 const db = new Database(dbPath);
@@ -12,6 +14,18 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (address TEXT PRIMARY KEY, balance REAL, win_amount REAL, free_spins INTEGER);
   INSERT OR IGNORE INTO house (id, tvl) VALUES (1, 10000);
 `);
+
+interface User {
+  address: string;
+  balance: number;
+  win_amount: number;
+  free_spins: number;
+}
+
+interface House {
+  id: number;
+  tvl: number;
+}
 
 const TOKENS = [
   { id: 'BTC', symbol: '₿', color: 'text-orange-500', bg: 'bg-orange-500/20', border: 'border-orange-500/50', name: 'Bitcoin', mult: 10 },
@@ -63,20 +77,20 @@ async function startServer() {
   // API Routes
   app.post("/api/auth", (req, res) => {
     const { address } = req.body;
-    let user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as any;
+    let user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
     if (!user) {
       db.prepare("INSERT INTO users (address, balance, win_amount, free_spins) VALUES (?, ?, ?, ?)").run(address, 1000, 0, 0);
       user = { address, balance: 1000, win_amount: 0, free_spins: 0 };
     }
-    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as any;
+    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
     res.json({ user, houseTvl: house.tvl });
   });
 
   app.post("/api/spin", (req, res) => {
     const { address, betAmount, riskLevel } = req.body;
     
-    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as any;
-    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as any;
+    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
+    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
     
     if (!user) return res.status(400).json({ error: "User not found" });
     if (user.balance < betAmount && user.free_spins === 0) return res.status(400).json({ error: "Insufficient balance" });
@@ -151,8 +165,8 @@ async function startServer() {
 
   app.post("/api/gamble", (req, res) => {
     const { address, type, suitId } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as any;
-    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as any;
+    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
+    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
 
     if (!user || user.win_amount <= 0) return res.status(400).json({ error: "No winnings to gamble" });
 
@@ -188,7 +202,7 @@ async function startServer() {
 
   app.post("/api/collect", (req, res) => {
     const { address } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as any;
+    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
     if (!user || user.win_amount <= 0) return res.status(400).json({ error: "No winnings to collect" });
 
     const newBalance = user.balance + user.win_amount;
@@ -199,8 +213,8 @@ async function startServer() {
 
   app.post("/api/deposit", (req, res) => {
     const { address, amount } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as any;
-    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as any;
+    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
+    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
     if (!user) return res.status(400).json({ error: "User not found" });
 
     const newBalance = user.balance + amount;
@@ -214,8 +228,8 @@ async function startServer() {
 
   app.post("/api/withdraw", (req, res) => {
     const { address, amount } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as any;
-    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as any;
+    const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
+    const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
     if (!user) return res.status(400).json({ error: "User not found" });
     if (user.balance < amount) return res.status(400).json({ error: "Insufficient balance" });
 
