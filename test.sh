@@ -8,13 +8,11 @@ npm run dev:api &
 SERVER_PID=$!
 
 # Define the base URL for the API
-BASE_URL="http://localhost:3000/api"
+BASE_URL="http://localhost:3001/api"
 
 # Wait for the server to be ready
 echo "Waiting for server to start..."
-while ! curl -s $BASE_URL/auth > /dev/null; do
-    sleep 1
-done
+npx wait-on tcp:3001
 echo "Server is ready!"
 
 

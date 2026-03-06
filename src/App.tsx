@@ -1,25 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, Link, BarChart2, Server, Database, X, Info, BookOpen } from 'lucide-react';
+import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, BarChart2, Server, Database, X, Info } from 'lucide-react';
 import { GoogleGenAI, ThinkingLevel, Modality } from "@google/genai";
 import { ethers } from 'ethers';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
-
-// EIP-6963 types
-interface EIP6963ProviderInfo {
-  uuid: string;
-  name: string;
-  icon: string;
-  rdns: string;
-}
-
-interface EIP6963ProviderDetail {
-  info: EIP6963ProviderInfo;
-  provider: any; // EIP-1193 provider
-}
-
-type EIP6963AnnounceProviderEvent = CustomEvent<EIP6963ProviderDetail>;
-
+import LoginPage from './LoginPage';
 
 const TOKENS = [
   { id: 'BTC', symbol: '₿', color: 'text-orange-500', bg: 'bg-orange-500/20', border: 'border-orange-500/50', name: 'Bitcoin', mult: 10 },
@@ -160,16 +145,29 @@ export default function App() {
   const [volatility, setVolatility] = useState(12.5);
   const [showStrategiesModal, setShowStrategiesModal] = useState(false);
 
-  // Live Data & Wallet State
-  const [walletConnected, setWalletConnected] = useState(false);
+  // Auth State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
-  const [providers, setProviders] = useState<EIP6963ProviderDetail[]>([]);
+
+  // Live Data
   const [prices, setPrices] = useState<Record<string, number>>({ BTC: 0, ETH: 0, SOL: 0, XRP: 0, ADA: 0, AVAX: 0, LINK: 0, DOGE: 0 });
 
   // Tracker & Workflow State
   const [chartData, setChartData] = useState<{ trade: number, balance: number }[]>([{ trade: 0, balance: 1000 }]);
   const [tradeCount, setTradeCount] = useState(0);
   const [activeTrade, setActiveTrade] = useState<{ name: string, steps: string[], currentStep: number, isWin: boolean } | null>(null);
+
+  const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
+
+  // AI Client Initialization
+  const ai = useMemo(() => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      addLog("AI features disabled. Please set VITE_GEMINI_API_KEY in .env file.");
+      return null;
+    }
+    return new GoogleGenAI({ apiKey });
+  }, []);
 
   useEffect(() => {
     if (freeSpins > 0 && !spinning) {
@@ -206,53 +204,61 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    function onAnnounceProvider(event: EIP6963AnnounceProviderEvent) {
-      setProviders(p => {
-        if (p.some(existing => existing.info.uuid === event.detail.info.uuid)) return p;
-        return [...p, event.detail];
+  const handleLogin = async (address: string) => {
+    addLog('Attempting to authenticate with backend...');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
       });
-    }
-    window.addEventListener("eip6963:announceProvider", onAnnounceProvider as EventListener);
-    window.dispatchEvent(new Event("eip6963:requestProvider"));
 
-    return () => {
-      window.removeEventListener("eip6963:announceProvider", onAnnounceProvider as EventListener);
-    };
+      if (!res.ok) {
+        addLog(`API auth failed with status: ${res.status}`);
+        const errorText = await res.text();
+        addLog(`Error: ${errorText}`);
+        return;
+      }
+
+      const data = await res.json();
+      addLog('Backend authentication successful. Updating state.');
+      
+      // Update state atomically
+      setBalance(data.user.balance);
+      setWinAmount(data.user.win_amount);
+      setFreeSpins(data.user.free_spins);
+      setHouseLiquidity(data.houseTvl);
+      setWalletAddress(address);
+      setIsLoggedIn(true);
+      localStorage.setItem('walletAddress', address);
+
+    } catch (e: any) {
+      console.error("Login process failed", e);
+      addLog("Login process failed.");
+      if (e.message) {
+        addLog(`Error details: ${e.message}`);
+      }
+    }
+  };
+  
+  // Auto-login on mount
+  useEffect(() => {
+    const storedAddress = localStorage.getItem('walletAddress');
+    if (storedAddress) {
+      addLog('Found stored address. Attempting to auto-login...');
+      handleLogin(storedAddress);
+    }
   }, []);
 
-
-  const connectWallet = async (providerDetail: EIP6963ProviderDetail) => {
-    try {
-      const provider = new ethers.BrowserProvider(providerDetail.provider);
-      const accounts = await provider.send("eth_requestAccounts", []);
-      const address = accounts[0];
-      
-      addLog(`Wallet connected: ${providerDetail.info.name} - ${address.slice(0,6)}...${address.slice(-4)}`);
-      setWalletAddress(address);
-      setWalletConnected(true);
-
-      try {
-        const res = await fetch('/api/auth', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address })
-        });
-        const data = await res.json();
-        setBalance(data.user.balance);
-        setWinAmount(data.user.win_amount);
-        setFreeSpins(data.user.free_spins);
-        setHouseLiquidity(data.houseTvl);
-      } catch (e) {
-        console.error("Failed to fetch state", e);
-        addLog("Failed to fetch user state from backend.");
-      }
-    } catch (error) {
-      addLog('Wallet connection rejected.');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('walletAddress');
+    setIsLoggedIn(false);
+    setWalletAddress('');
+    addLog('Wallet disconnected.');
   };
 
   const handleDeposit = async () => {
-    if (!walletConnected) return addLog('Connect wallet first.');
+    if (!isLoggedIn) return addLog('Connect wallet first.');
     const amount = prompt("Enter amount to deposit (simulated):", "100");
     if (!amount || isNaN(Number(amount))) return;
     
@@ -271,7 +277,7 @@ export default function App() {
   };
 
   const handleWithdraw = async () => {
-    if (!walletConnected) return addLog('Connect wallet first.');
+    if (!isLoggedIn) return addLog('Connect wallet first.');
     if (balance <= 0) return addLog('No balance to withdraw.');
     const amount = prompt(`Enter amount to withdraw (Max: $${balance}):`, balance.toString());
     if (!amount || isNaN(Number(amount)) || Number(amount) > balance) return;
@@ -319,8 +325,6 @@ export default function App() {
     }));
   }, []);
 
-  const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -331,11 +335,11 @@ export default function App() {
   };
 
   const generateVeoVideo = async () => {
+    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     if (!editingImage) return alert("Upload a photo first!");
     setAiLoading(true);
     setGeneratedVideo(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: 'Animate this crypto token with cinematic lighting and motion',
@@ -344,24 +348,26 @@ export default function App() {
       });
       while (!operation.done) {
         await new Promise(resolve => setTimeout(resolve, 10000));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
+        operation = await ai.operations.getVideosOperation({ name: operation.name });
       }
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-      const response = await fetch(downloadLink!, { headers: { 'x-goog-api-key': import.meta.env.VITE_GEMINI_API_KEY! } });
+      if (!downloadLink) throw new Error("No video generated");
+      const response = await fetch(downloadLink, { headers: { 'x-goog-api-key': import.meta.env.VITE_GEMINI_API_KEY! } });
       const blob = await response.blob();
       setGeneratedVideo(URL.createObjectURL(blob));
     } catch (e) {
       setAiResponse("Video generation failed.");
+      console.error(e)
     } finally {
       setAiLoading(false);
     }
   };
 
   const editImageWithGemini = async () => {
+    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     if (!editingImage || !editPrompt) return alert("Upload photo & enter prompt!");
     setAiLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
@@ -385,23 +391,20 @@ export default function App() {
   };
 
   const handleSpin = async () => {
-    if (!walletConnected) return addLog('ERROR: Connect Web3 wallet first.');
-    if (balance < bet && freeSpins === 0 || spinning || winAmount > 0) return;
-    
+    if (!isLoggedIn) return addLog('ERROR: Connect Web3 wallet first.');
+    if (spinning || winAmount > 0) return;
+    if (balance < bet && freeSpins === 0) return addLog('ERROR: Insufficient funds.');
+
     playSound('click');
     setSpinning(true);
+    setWinAmount(0);
+    setWinLines([]);
     setWinningCells([]);
     setLosingCells([]);
     setGambleMode(false);
     
-    let initialBalance = balance;
-    if (freeSpins === 0) {
-      initialBalance = balance - bet;
-      setBalance(initialBalance);
-      setHouseLiquidity(h => h + bet);
-    } else {
-      setFreeSpins(f => f - 1);
-      addLog(`[FREE SPIN] ${freeSpins} remaining...`);
+    if (freeSpins > 0) {
+        addLog(`[FREE SPIN] ${freeSpins} remaining...`);
     }
     
     addLog(`[API] Routing trade to Backend...`);
@@ -413,21 +416,16 @@ export default function App() {
       const data = await res.json();
       if (data.error) {
         addLog(`ERROR: ${data.error}`);
-        // If the spin failed, revert optimistic balance update if it wasn't a free spin
-        if (freeSpins === 0) {
-            setBalance(balance);
-            setHouseLiquidity(h => h - bet);
-        }
         setSpinning(false);
         return;
       }
 
-      const { finalGrid, winMult, isWin, strategy, scatters, user, houseTvl } = data;
+      const { finalGrid, isWin, strategy, scatters, user, houseTvl } = data;
       
       setActiveTrade({ name: strategy.name, steps: strategy.steps, currentStep: 0, isWin });
       addLog(`[API] Initiating ${strategy.name} at $${bet} (${riskLevel} Risk)...`);
 
-      // 2. Animate Grid & Log Steps
+      // Animate Grid & Log Steps
       for (let i = 0; i < 10; i++) {
         playSound('spin');
         setGrid(generateGrid());
@@ -451,19 +449,20 @@ export default function App() {
       setGrid(finalGrid);
       setSpinning(false);
 
+      // Sync state with backend response
       setBalance(user.balance);
       setFreeSpins(user.free_spins);
+      setWinAmount(user.win_amount);
       setHouseLiquidity(houseTvl);
 
       if (scatters >= 3) {
         playSound('freeSpinTrigger');
-        addLog(`🎰 5 FREE SPINS TRIGGERED! 🎰`);
+        addLog(`🎰 ${user.free_spins - freeSpins + 5} FREE SPINS TRIGGERED! 🎰`); // Calculate how many were added
       }
 
-      // 3. Process Result
+      // Process Result
       if (isWin) {
         playSound('win');
-        setWinAmount(user.win_amount);
         setWinLines([`${strategy.name} Successful`]);
         setWinningCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
         addLog(`[STEP 4] ${strategy.steps[3]} - SUCCESS!`);
@@ -480,10 +479,6 @@ export default function App() {
       setTradeCount(c => c + 1);
     } catch (e) {
       addLog(`ERROR: Backend connection failed.`);
-       if (freeSpins === 0) {
-            setBalance(balance);
-            setHouseLiquidity(h => h - bet);
-        }
       setSpinning(false);
     }
   };
@@ -491,6 +486,7 @@ export default function App() {
   const handleGamble = async (type: 'RED' | 'BLACK' | 'SUIT', suitId?: string) => {
     if (winAmount <= 0) return;
     playSound('click');
+    const originalWinAmount = winAmount; // Store original win amount before gamble
     
     try {
       const res = await fetch('/api/gamble', {
@@ -520,7 +516,12 @@ export default function App() {
         setActiveTrade(null);
         setChartData(prev => {
           const newData = [...prev];
-          newData[newData.length - 1].balance -= winAmount;
+          const lastEntry = newData[newData.length - 1];
+          // The loss was already accounted for in the balance from the spin, 
+          // but the profit from the win needs to be removed from the chart.
+          if (lastEntry) {
+            newData[newData.length - 1] = { ...lastEntry, balance: lastEntry.balance - originalWinAmount };
+          }
           return newData;
         });
       }
@@ -553,9 +554,9 @@ export default function App() {
 
   // AI Features
   const runMarketAnalysis = async () => {
+    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     setAiLoading(true); setAiResponse(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: "Analyze the current high-frequency trading landscape for crypto. Provide a complex reasoning about arbitrage opportunities on decentralized exchanges vs centralized ones.",
@@ -566,9 +567,9 @@ export default function App() {
   };
 
   const getMarketNews = async () => {
+    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     setAiLoading(true); setAiResponse(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: "What are the top 3 crypto news stories in the last 24 hours? Focus on market-moving events.",
@@ -579,9 +580,9 @@ export default function App() {
   };
 
   const generateLuckyToken = async () => {
+    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     setAiLoading(true); setGeneratedImage(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts: [{ text: 'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution' }] },
@@ -594,10 +595,10 @@ export default function App() {
   };
 
   const toggleLiveAssistant = async () => {
+    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     if (isLive) { sessionRef.current?.close(); setIsLive(false); return; }
     setIsLive(true); setTranscription('Connecting to Live Degen Assistant...');
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const session = await ai.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-09-2025",
         callbacks: {
@@ -611,6 +612,10 @@ export default function App() {
       sessionRef.current = session;
     } catch (e) { setIsLive(false); }
   };
+  
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={handleLogin} addLog={addLog} />;
+  }
 
   return (
     <div className="h-[100dvh] bg-zinc-950 text-zinc-100 font-sans flex flex-col overflow-hidden text-sm">
@@ -722,7 +727,7 @@ export default function App() {
             </div>
 
 
-            {walletConnected ? (
+            {isLoggedIn ? (
 
               <div className="flex items-center gap-2">
 
@@ -745,53 +750,19 @@ export default function App() {
                 </button>
 
 
-                <div className="bg-zinc-800 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full">
+                <button onClick={handleLogout} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full">
 
 
-                  {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
+                   {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
 
 
-                </div>
+                </button>
 
 
               </div>
 
 
-            ) : (
-
-               <div className="flex items-center gap-2">
-
-
-                {providers.length > 0 ? (
-
-                  providers.map((p) => (
-
-                    <button key={p.info.uuid} onClick={() => connectWallet(p)} className="bg-zinc-800 hover:bg-zinc-700 text-[10px] font-medium px-2 py-1 rounded-full transition-colors flex items-center gap-1">
-
-
-                      <img src={p.info.icon} alt={p.info.name} className="w-4 h-4 rounded-full" />
-
-
-                      <span className="hidden sm:inline">Connect </span>{p.info.name}
-
-
-                    </button>
-
-
-                  ))
-
-
-                ) : (
-
-                  <div className="text-zinc-500 text-[10px] font-mono">No wallets found.</div>
-
-
-                )}
-
-              </div>
-
-
-            )}
+            ) : ( <div /> )}
 
           </div>
 
@@ -1423,7 +1394,7 @@ export default function App() {
 
                   whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
 
-                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !walletConnected}
+                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn}
 
                   className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-1.5 relative overflow-hidden group"
 
@@ -1434,7 +1405,7 @@ export default function App() {
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
 
 
-                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}\
+                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
 
 
                 </motion.button>

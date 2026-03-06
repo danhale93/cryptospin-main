@@ -1,10 +1,14 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+// Handle ES module __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const dbPath = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, "crypto_casino.db") : "crypto_casino.db";
 const db = new Database(dbPath);
@@ -70,7 +74,7 @@ const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() =>
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 3001;
 
   app.use(express.json());
 
@@ -93,18 +97,22 @@ async function startServer() {
     const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
     
     if (!user) return res.status(400).json({ error: "User not found" });
-    if (user.balance < betAmount && user.free_spins === 0) return res.status(400).json({ error: "Insufficient balance" });
     if (user.win_amount > 0) return res.status(400).json({ error: "Collect winnings first" });
+
+    const isFreeSpin = user.free_spins > 0;
+    if (!isFreeSpin && user.balance < betAmount) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
 
     let newBalance = user.balance;
     let newFreeSpins = user.free_spins;
     let newHouseTvl = house.tvl;
 
-    if (newFreeSpins === 0) {
+    if (isFreeSpin) {
+      newFreeSpins -= 1;
+    } else {
       newBalance -= betAmount;
       newHouseTvl += betAmount;
-    } else {
-      newFreeSpins -= 1;
     }
 
     const strategies = STRATEGIES[riskLevel as keyof typeof STRATEGIES];
@@ -158,7 +166,7 @@ async function startServer() {
 
     res.json({
       finalGrid, winMult, isWin, strategy, scatters,
-      user: { balance: newBalance, win_amount: winAmount, free_spins: newFreeSpins },
+      user: { address, balance: newBalance, win_amount: winAmount, free_spins: newFreeSpins },
       houseTvl: newHouseTvl
     });
   });
@@ -218,7 +226,7 @@ async function startServer() {
     if (!user) return res.status(400).json({ error: "User not found" });
 
     const newBalance = user.balance + amount;
-    const newHouseTvl = house.tvl + amount; // In a real app, house TVL might be separate from user deposits, but for this simulation we'll add it to the pool
+    const newHouseTvl = house.tvl + amount;
 
     db.prepare("UPDATE users SET balance = ? WHERE address = ?").run(newBalance, address);
     db.prepare("UPDATE house SET tvl = ? WHERE id = 1").run(newHouseTvl);
@@ -241,20 +249,18 @@ async function startServer() {
 
     res.json({ balance: newBalance, houseTvl: newHouseTvl });
   });
-
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
+  
+  if (process.env.NODE_ENV === "production") {
+    const distPath = path.join(__dirname, '..', 'dist');
+    app.use(express.static(distPath));
+    // Serve index.html for any other requests
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
     });
-    app.use(vite.middlewares);
-  } else {
-    app.use(express.static("dist"));
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`API Server running on http://localhost:${PORT}`);
   });
 }
 
