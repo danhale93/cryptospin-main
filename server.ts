@@ -79,11 +79,16 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
+  app.get("/api/strategies", (req, res) => {
+    res.json(STRATEGIES);
+  });
+
   app.post("/api/auth", (req, res) => {
     const { address } = req.body;
     let user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
     if (!user) {
-      db.prepare("INSERT INTO users (address, balance, win_amount, free_spins) VALUES (?, ?, ?, ?)").run(address, 1000, 0, 0);
+      db.prepare("INSERT INTO users (address, balance, win_amount, free_spins) VALUES (?, ?, ?, ?)")
+.run(address, 1000, 0, 0);
       user = { address, balance: 1000, win_amount: 0, free_spins: 0 };
     }
     const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
@@ -234,7 +239,7 @@ async function startServer() {
     res.json({ balance: newBalance, houseTvl: newHouseTvl });
   });
 
-  app.post("/api/withdraw", (req, res) => {
+  app.post("/api/withdraw", async (req, res) => {
     const { address, amount } = req.body;
     const user = db.prepare("SELECT * FROM users WHERE address = ?").get(address) as User | undefined;
     const house = db.prepare("SELECT tvl FROM house WHERE id = 1").get() as House;
@@ -244,10 +249,16 @@ async function startServer() {
     const newBalance = user.balance - amount;
     const newHouseTvl = house.tvl - amount;
 
+    // Simulate the withdrawal process (e.g., calling a payment gateway, interacting with a blockchain)
+    console.log(`Initiating withdrawal of $${amount} for address ${address}...`);
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate a 3-second delay
+
     db.prepare("UPDATE users SET balance = ? WHERE address = ?").run(newBalance, address);
     db.prepare("UPDATE house SET tvl = ? WHERE id = 1").run(newHouseTvl);
 
-    res.json({ balance: newBalance, houseTvl: newHouseTvl });
+    console.log(`Withdrawal of $${amount} for address ${address} completed successfully.`);
+
+    res.json({ balance: newBalance, houseTvl: newHouseTvl, message: `Withdrawal of $${amount} successful.` });
   });
   
   if (process.env.NODE_ENV === "production") {

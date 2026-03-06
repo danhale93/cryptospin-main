@@ -27,25 +27,6 @@ const SUITS = [
   { id: 'CLUB', symbol: '♣', color: 'text-zinc-800', type: 'BLACK' }
 ];
 
-const STRATEGIES = {
-  LOW: [
-    { name: "Stablecoin Arb", type: "ARB", winRate: 0.75, minMult: 1.05, maxMult: 1.15, steps: ["Scan Pools", "Detect Peg Deviation", "Swap", "Restore Peg"], desc: "Exploits minor price differences between pegged stablecoins (e.g., USDT/USDC) across different liquidity pools." },
-    { name: "Yield Farming", type: "YIELD", winRate: 0.80, minMult: 1.02, maxMult: 1.10, steps: ["Find APY", "Provide Liquidity", "Harvest", "Withdraw"], desc: "Provides liquidity to decentralized protocols to earn fees and token rewards with minimal principal risk." }
-  ],
-  MED: [
-    { name: "Triangular Arb", type: "ARB", winRate: 0.55, minMult: 1.2, maxMult: 1.8, steps: ["Scan DEX", "Detect Gap", "Multi-Hop", "Profit"], desc: "Trades three different assets sequentially on a single exchange to exploit pricing inefficiencies between their trading pairs." },
-    { name: "Stat Arb", type: "STAT", winRate: 0.50, minMult: 1.3, maxMult: 2.0, steps: ["Mean Reversion", "Short Overvalued", "Long Undervalued", "Close"], desc: "Uses quantitative models to identify historically correlated assets that have temporarily diverged in price." }
-  ],
-  HIGH: [
-    { name: "Flashloan Liq", type: "FLASH", winRate: 0.35, minMult: 2.0, maxMult: 4.0, steps: ["Monitor Health", "Flashloan", "Liquidate", "Repay"], desc: "Borrows uncollateralized funds to liquidate undercollateralized positions on lending protocols, repaying the loan in the same transaction." },
-    { name: "MEV Sandwich", type: "MEV", winRate: 0.30, minMult: 2.5, maxMult: 5.0, steps: ["Mempool Scan", "Front-run", "Back-run", "Extract"], desc: "Detects large pending trades, buys the asset before them (front-run), and sells it immediately after (back-run) to profit from the price impact." }
-  ],
-  DEGEN: [
-    { name: "Shitcoin Sniper", type: "SNIPE", winRate: 0.15, minMult: 5.0, maxMult: 15.0, steps: ["Scan Mempool", "Detect Liquidity", "Buy Block 0", "Dump"], desc: "Monitors the blockchain for new token liquidity events, buying in the exact same block and selling shortly after for massive gains." },
-    { name: "Cross-Chain MEV", type: "MEV", winRate: 0.10, minMult: 10.0, maxMult: 30.0, steps: ["Monitor Bridges", "Detect Imbalance", "Flashloan", "Arb"], desc: "Highly complex strategy exploiting price differences across entirely different blockchains using bridges and simultaneous flashloans." }
-  ]
-};
-
 const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() => TOKENS[Math.floor(Math.random() * TOKENS.length)]));
 
 const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gambleLose' | 'freeSpinTrigger') => {
@@ -144,6 +125,8 @@ export default function App() {
   const [riskLevel, setRiskLevel] = useState<'LOW' | 'MED' | 'HIGH' | 'DEGEN'>('MED');
   const [volatility, setVolatility] = useState(12.5);
   const [showStrategiesModal, setShowStrategiesModal] = useState(false);
+  const [strategies, setStrategies] = useState(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   // Auth State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -167,6 +150,20 @@ export default function App() {
       return null;
     }
     return new GoogleGenAI({ apiKey });
+  }, []);
+
+  useEffect(() => {
+    const fetchStrategies = async () => {
+      try {
+        const res = await fetch('/api/strategies');
+        const data = await res.json();
+        setStrategies(data);
+      } catch (e) {
+        addLog('Failed to fetch strategies.');
+        console.error('Failed to fetch strategies', e);
+      }
+    };
+    fetchStrategies();
   }, []);
 
   useEffect(() => {
@@ -282,19 +279,25 @@ export default function App() {
     const amount = prompt(`Enter amount to withdraw (Max: $${balance}):`, balance.toString());
     if (!amount || isNaN(Number(amount)) || Number(amount) > balance) return;
 
+    setIsWithdrawing(true);
+    addLog(`Initiating withdrawal of $${amount}...`);
     try {
       const res = await fetch('/api/withdraw', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: walletAddress, amount: Number(amount) })
       });
       const data = await res.json();
-      if (data.error) return addLog(`Withdraw Error: ${data.error}`);
-      
-      setBalance(data.balance);
-      setHouseLiquidity(data.houseTvl);
-      addLog(`Withdrew $${amount} successfully.`);
+      if (data.error) {
+        addLog(`Withdraw Error: ${data.error}`);
+      } else {
+        setBalance(data.balance);
+        setHouseLiquidity(data.houseTvl);
+        addLog(data.message);
+      }
     } catch (e) {
       addLog('Withdraw failed.');
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -394,6 +397,7 @@ export default function App() {
     if (!isLoggedIn) return addLog('ERROR: Connect Web3 wallet first.');
     if (spinning || winAmount > 0) return;
     if (balance < bet && freeSpins === 0) return addLog('ERROR: Insufficient funds.');
+    if (!strategies) return addLog('ERROR: Strategies not loaded yet.');
 
     playSound('click');
     setSpinning(true);
@@ -732,7 +736,7 @@ export default function App() {
               <div className="flex items-center gap-2">
 
 
-                <button onClick={handleDeposit} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors">
+                <button onClick={handleDeposit} disabled={isWithdrawing} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
 
 
                   Deposit
@@ -741,16 +745,16 @@ export default function App() {
                 </button>
 
 
-                <button onClick={handleWithdraw} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors">
+                <button onClick={handleWithdraw} disabled={isWithdrawing} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
 
 
-                  Withdraw
+                  {isWithdrawing ? '...' : 'Withdraw'}
 
 
                 </button>
 
 
-                <button onClick={handleLogout} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full">
+                <button onClick={handleLogout} disabled={isWithdrawing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full disabled:opacity-50">
 
 
                    {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
@@ -1405,7 +1409,7 @@ export default function App() {
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
 
 
-                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
+                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}'''
 
 
                 </motion.button>
@@ -1575,7 +1579,7 @@ export default function App() {
                     <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-1 ${log.includes('PROFIT') || log.includes('WON') ? 'text-emerald-400' : log.includes('Loss') || log.includes('LOST') || log.includes('failed') ? 'text-red-400' : log.includes('API') ? 'text-blue-400' : 'text-zinc-500'}`}>
 
 
-                      <span className="shrink-0">{'>'}</span>
+                      <span className="shrink-0">{">"}</span>
 
 
                       <span className="break-all">{log}</span>
