@@ -6,6 +6,14 @@ set -e
 # Define the base URL for the API
 BASE_URL="http://localhost:3000/api"
 
+# Wait for the server to be ready
+echo "Waiting for server to start..."
+while ! curl -s $BASE_URL/auth > /dev/null; do
+    sleep 1
+done
+echo "Server is ready!"
+
+
 # Test /api/auth
 echo "Testing /api/auth"
 curl -X POST -H "Content-Type: application/json" -d '{"address":"test_user"}' $BASE_URL/auth
