@@ -3,6 +3,10 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+# Start the server in the background
+npm run dev:api &
+SERVER_PID=$!
+
 # Define the base URL for the API
 BASE_URL="http://localhost:3000/api"
 
@@ -46,3 +50,6 @@ curl -X POST -H "Content-Type: application/json" -d '{"address":"test_user", "ty
 echo -e "\n"
 
 echo "All tests passed!"
+
+# Kill the server process
+kill $SERVER_PID

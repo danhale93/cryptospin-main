@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, Link, BarChart2, Server, Database, X, Info, BookOpen } from 'lucide-react';
 import { GoogleGenAI, ThinkingLevel, Modality } from "@google/genai";
 import { ethers } from 'ethers';
@@ -335,7 +335,7 @@ export default function App() {
     setAiLoading(true);
     setGeneratedVideo(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: 'Animate this crypto token with cinematic lighting and motion',
@@ -347,7 +347,7 @@ export default function App() {
         operation = await ai.operations.getVideosOperation({ operation: operation });
       }
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-      const response = await fetch(downloadLink!, { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY! } });
+      const response = await fetch(downloadLink!, { headers: { 'x-goog-api-key': import.meta.env.VITE_GEMINI_API_KEY! } });
       const blob = await response.blob();
       setGeneratedVideo(URL.createObjectURL(blob));
     } catch (e) {
@@ -361,7 +361,7 @@ export default function App() {
     if (!editingImage || !editPrompt) return alert("Upload photo & enter prompt!");
     setAiLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
@@ -386,17 +386,14 @@ export default function App() {
 
   const handleSpin = async () => {
     if (!walletConnected) return addLog('ERROR: Connect Web3 wallet first.');
-    if (balance < bet && freeSpins === 0 || spinning) return;
+    if (balance < bet && freeSpins === 0 || spinning || winAmount > 0) return;
     
     playSound('click');
     setSpinning(true);
-    setWinAmount(0);
-    setWinLines([]);
     setWinningCells([]);
     setLosingCells([]);
     setGambleMode(false);
     
-    // Optimistic update
     let initialBalance = balance;
     if (freeSpins === 0) {
       initialBalance = balance - bet;
@@ -416,6 +413,11 @@ export default function App() {
       const data = await res.json();
       if (data.error) {
         addLog(`ERROR: ${data.error}`);
+        // If the spin failed, revert optimistic balance update if it wasn't a free spin
+        if (freeSpins === 0) {
+            setBalance(balance);
+            setHouseLiquidity(h => h - bet);
+        }
         setSpinning(false);
         return;
       }
@@ -449,7 +451,6 @@ export default function App() {
       setGrid(finalGrid);
       setSpinning(false);
 
-      // Sync state with backend
       setBalance(user.balance);
       setFreeSpins(user.free_spins);
       setHouseLiquidity(houseTvl);
@@ -479,6 +480,10 @@ export default function App() {
       setTradeCount(c => c + 1);
     } catch (e) {
       addLog(`ERROR: Backend connection failed.`);
+       if (freeSpins === 0) {
+            setBalance(balance);
+            setHouseLiquidity(h => h - bet);
+        }
       setSpinning(false);
     }
   };
@@ -538,6 +543,8 @@ export default function App() {
       setWinAmount(0);
       setGambleMode(false);
       setActiveTrade(null);
+      setWinLines([]);
+      setWinningCells([]);
       addLog('Profits secured to wallet.');
     } catch (e) {
       addLog(`ERROR: Collect request failed.`);
@@ -548,7 +555,7 @@ export default function App() {
   const runMarketAnalysis = async () => {
     setAiLoading(true); setAiResponse(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: "Analyze the current high-frequency trading landscape for crypto. Provide a complex reasoning about arbitrage opportunities on decentralized exchanges vs centralized ones.",
@@ -561,7 +568,7 @@ export default function App() {
   const getMarketNews = async () => {
     setAiLoading(true); setAiResponse(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: "What are the top 3 crypto news stories in the last 24 hours? Focus on market-moving events.",
@@ -574,7 +581,7 @@ export default function App() {
   const generateLuckyToken = async () => {
     setAiLoading(true); setGeneratedImage(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: { parts: [{ text: 'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution' }] },
@@ -590,13 +597,12 @@ export default function App() {
     if (isLive) { sessionRef.current?.close(); setIsLive(false); return; }
     setIsLive(true); setTranscription('Connecting to Live Degen Assistant...');
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const session = await ai.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-09-2025",
         callbacks: {
           onopen: () => setTranscription('Live! Speak to the Degen Assistant.'),
-          onmessage: (msg) => { if (msg.serverContent?.modelTurn?.parts?.[0]?.text) setTranscription(prev => prev + '
-' + msg.serverContent?.modelTurn?.parts[0].text); },
+          onmessage: (msg) => { if (msg.serverContent?.modelTurn?.parts?.[0]?.text) setTranscription(prev => prev + '\n' + msg.serverContent?.modelTurn?.parts[0].text); },
           onclose: () => setIsLive(false),
           onerror: () => setIsLive(false)
         },
@@ -1428,7 +1434,7 @@ export default function App() {
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
 
 
-                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
+                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}\
 
 
                 </motion.button>
