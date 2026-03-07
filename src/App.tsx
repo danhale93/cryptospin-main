@@ -27,73 +27,79 @@ const SUITS = [
 
 const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() => TOKENS[Math.floor(Math.random() * TOKENS.length)]));
 
-// Frog Leap Animation Component
-const FrogLeapAnimation = ({ result, onComplete, betAmount, winAmount } : { result: 'win' | 'loss', onComplete: () => void, betAmount: number, winAmount: number }) => {
+// Integrated Reel-Based Frog Animation
+const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { result: 'win' | 'loss', onComplete: () => void, betAmount: number, winAmount: number }) => {
   const winText = `+$${winAmount.toFixed(2)}`;
   const lossText = `-$${betAmount.toFixed(2)}`;
 
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 4000); // Animation duration
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1, backdropFilter: 'blur(8px)' }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center font-mono"
-    >
-      <div className="w-full max-w-md h-48 bg-zinc-900 border-2 border-zinc-700 rounded-xl p-4 relative flex flex-col items-center justify-end shadow-2xl overflow-hidden">
-        {/* Platforms */}
-        <div className="absolute bottom-8 left-0 w-1/3 h-10 bg-zinc-800 border-t-4 border-emerald-500 rounded-r-lg" />
-        <div className="absolute bottom-8 right-0 w-1/3 h-10 bg-zinc-800 border-t-4 border-emerald-500 rounded-l-lg" />
-        <AnimatePresence>
-          {result === 'loss' && (
-              <motion.div 
-                  initial={{ opacity: 0}} 
-                  animate={{ opacity: 1}} 
-                  className="absolute bottom-8 left-1/2 w-4 h-1 bg-red-500 rounded-full shadow-[0_0_10px_red]" 
-              />
-          )}
-        </AnimatePresence>
+    <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+      {/* Frog */}
+      <motion.div
+        initial={{ x: "-220px", y: 0, rotate: 0, scale: 1.5 }}
+        animate={{
+          x: result === 'win' ? "220px" : ["-220px", "0px", "0px"],
+          y: result === 'win' ? [0, -100, 0] : [0, -60, 200],
+          rotate: result === 'win' ? [0, 20, 0] : [0, -10, 360],
+          opacity: result === 'loss' ? [1, 1, 0] : 1,
+        }}
+        transition={{
+          duration: 1.8,
+          ease: "easeInOut",
+          times: result === 'win' ? [0, 0.5, 1] : [0, 0.4, 1],
+          delay: 0.2,
+        }}
+        className="text-5xl z-10 filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
+      >
+        🐸
+      </motion.div>
 
-        {/* Frog */}
+      {/* Result Text & Effects */}
+      <AnimatePresence>
         <motion.div
-          initial={{ x: "-140px", y: 0, rotate: 0 }}
-          animate={{
-            x: result === 'win' ? "140px" : "0px",
-            y: result === 'win' ? [0, -80, 0] : [0, -40, 100],
-            rotate: result === 'win' ? [0, 20, 0] : 0,
-          }}
-          transition={{
-            duration: 1.5,
-            ease: "easeInOut",
-            delay: 0.5,
-          }}
-          className="text-4xl z-10"
-        >
-          🐸
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1.2 }}
+            transition={{ delay: 2.0, duration: 0.5, type: 'spring' }}
+            className={`absolute font-black text-6xl uppercase ${result === 'win' ? 'text-emerald-400/90' : 'text-red-500/90'}`}>
+            {result === 'win' ? "PROFIT" : "RUGGED"}
         </motion.div>
-
-        {/* Result Text */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.2 }}
-          className={`absolute top-4 text-3xl font-black ${result === 'win' ? 'text-emerald-400' : 'text-red-500'}`}
-        >
-          {result === 'win' ? `PROFIT: ${winText}` : `LOSS: ${lossText}`}
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 2.2, duration: 0.5, type: 'spring' }}
+            className={`absolute mt-24 font-mono font-bold text-4xl ${result === 'win' ? 'text-white' : 'text-zinc-300'}`}>
+            {result === 'win' ? winText : lossText}
         </motion.div>
+      </AnimatePresence>
 
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.8 }}
-          onClick={onComplete}
-          className="absolute bottom-2 right-2 text-xs px-2 py-0.5 bg-zinc-800 rounded hover:bg-zinc-700"
-        >
-          Continue
-        </motion.button>
-      </div>
-    </motion.div>
-  )
+      {/* Winning Cells Path Glow */}
+      {result === 'win' && (
+        <motion.div 
+          className="absolute w-full h-1/3 top-1/3 left-0 bg-emerald-500/30 filter blur-[30px]"
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: 1, opacity: 1 }}
+          transition={{ delay: 1, duration: 0.8, ease: 'circOut' }}
+        />
+      )}
+
+      {/* Losing Cell Crack */}
+      {result === 'loss' && (
+         <motion.div 
+            className="absolute w-1/5 h-1/3 top-1/3 left-2/5 border-2 border-red-500/80 rounded-lg bg-red-900/20"
+            initial={{ opacity: 0, scale: 0, rotate: 0 }}
+            animate={{ opacity: [0,1,1,0], scale: [0, 1.1, 1, 1], rotate: [0, 0, -5, 5] }}
+            transition={{ duration: 2, times: [0, 0.1, 0.9, 1], delay: 1.0 }}
+         />
+      )}
+    </div>
+  );
 }
+
 
 const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gambleLose' | 'freeSpinTrigger') => {
   try {
@@ -205,8 +211,7 @@ export default function App() {
   const [chartData, setChartData] = useState<{ trade: number, balance: number }[]>([{ trade: 0, balance: 1000 }]);
   const [tradeCount, setTradeCount] = useState(0);
   const [activeTrade, setActiveTrade] = useState<{ name: string, steps: string[], currentStep: number, isWin: boolean } | null>(null);
-  const [showFrogAnimation, setShowFrogAnimation] = useState(false);
-  const [lastTradeResult, setLastTradeResult] = useState<"win" | "loss">("loss");
+  const [tradeResultForAnimation, setTradeResultForAnimation] = useState<"win" | "loss" | null>(null);
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
 
@@ -225,16 +230,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (freeSpins > 0 && !spinning) {
-      if (winAmount > 0) {
-        const t = setTimeout(() => collectWinnings(), 1500);
-        return () => clearTimeout(t);
-      } else if (!showFrogAnimation) { // Don't auto-spin if the frog is leaping
+    if (freeSpins > 0 && !spinning && !tradeResultForAnimation && winAmount === 0) {
         const t = setTimeout(() => handleSpin(), 1500);
         return () => clearTimeout(t);
-      }
     }
-  }, [freeSpins, spinning, winAmount, showFrogAnimation]);
+  }, [freeSpins, spinning, winAmount, tradeResultForAnimation]);
 
   useEffect(() => {
     const fetchPrices = async () => {
@@ -430,25 +430,27 @@ export default function App() {
   };
 
   const handleAnimationComplete = () => {
-    setShowFrogAnimation(false);
-    if (lastTradeResult === 'win') {
-      playSound('win');
-      const activeTradeName = activeTrade?.name || 'Trade';
-      setWinLines([`${activeTradeName} Successful`]);
-      setWinningCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
-      addLog(`[TX] ${activeTradeName} closed in PROFIT! +$${winAmount.toFixed(2)}`);
-    } else {
-      playSound('lose');
-      const activeTradeName = activeTrade?.name || 'Trade';
-      setLosingCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
-      addLog(`[TX] ${activeTradeName} failed. Loss: -$${bet.toFixed(2)}`);
-      setTimeout(() => setActiveTrade(null), 2000);
+    const result = tradeResultForAnimation;
+    setTradeResultForAnimation(null);
+    
+    if (result === 'win') {
+        playSound('win');
+        const activeTradeName = activeTrade?.name || 'Trade';
+        setWinLines([`${activeTradeName} Successful`]);
+        setWinningCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
+        addLog(`[TX] ${activeTradeName} closed in PROFIT! +$${winAmount.toFixed(2)}`);
+    } else if (result === 'loss') {
+        playSound('lose');
+        const activeTradeName = activeTrade?.name || 'Trade';
+        setLosingCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
+        addLog(`[TX] ${activeTradeName} failed. Loss: -$${bet.toFixed(2)}`);
+        setTimeout(() => setActiveTrade(null), 2000);
     }
   };
 
   const handleSpin = async () => {
     if (!isLoggedIn) return addLog('ERROR: Connect Web3 wallet first.');
-    if (spinning || winAmount > 0) return;
+    if (spinning || winAmount > 0 || tradeResultForAnimation) return;
     if (balance < bet && freeSpins === 0) return addLog('ERROR: Insufficient funds.');
     if (!strategies) return addLog('ERROR: Strategies not loaded yet.');
 
@@ -459,7 +461,7 @@ export default function App() {
     setWinningCells([]);
     setLosingCells([]);
     setGambleMode(false);
-    setActiveTrade(null); // Clear previous trade info
+    setActiveTrade(null);
     
     if (freeSpins > 0) {
         addLog(`[FREE SPIN] ${freeSpins > 1 ? `${freeSpins} remaining...` : 'Last one!'}` );
@@ -510,19 +512,16 @@ export default function App() {
       setGrid(finalGrid);
       setSpinning(false);
 
-      // Sync state with backend response before animation
       setBalance(user.balance);
       setFreeSpins(user.free_spins);
       setWinAmount(user.win_amount);
       setHouseLiquidity(houseTvl);
-      setLastTradeResult(isWin ? 'win' : 'loss');
 
       if (scatters >= 3) {
         playSound('freeSpinTrigger');
         addLog(`🎰 ${user.free_spins - freeSpins + 5} FREE SPINS TRIGGERED! 🎰`);
       }
 
-      // Set chart data immediately
       if (isWin) {
         setChartData(prev => [...prev, { trade: tradeCount + 1, balance: user.balance + user.win_amount }]);
       } else {
@@ -530,8 +529,8 @@ export default function App() {
       }
       setTradeCount(c => c + 1);
 
-      // Trigger the frog animation!
-      setShowFrogAnimation(true);
+      // Trigger the new reel animation!
+      setTradeResultForAnimation(isWin ? 'win' : 'loss');
 
     } catch (e) {
       addLog(`ERROR: Backend connection failed.`);
@@ -585,6 +584,7 @@ export default function App() {
   };
 
   const collectWinnings = async () => {
+    if (tradeResultForAnimation) return; // Cannot collect during animation
     playSound('click');
     try {
       const res = await fetch('/api/collect', {
@@ -670,32 +670,21 @@ export default function App() {
   return (
     <div className="h-[100dvh] bg-zinc-950 text-zinc-100 font-sans flex flex-col overflow-hidden text-sm">
 
-      <AnimatePresence>
-        {showFrogAnimation && <FrogLeapAnimation result={lastTradeResult} onComplete={handleAnimationComplete} betAmount={bet} winAmount={winAmount} />}
-      </AnimatePresence>
-
-
       {/* Live Price Ticker */}
 
       <div className="bg-[#050505] border-b border-zinc-800 py-1 px-2 flex justify-center shrink-0 overflow-hidden">
 
-
         <div className="flex gap-4 text-[9px] sm:text-[10px] font-mono text-zinc-500 whitespace-nowrap animate-[marquee_20s_linear_infinite]">
-
 
           <span className="flex items-center gap-1">
 
-
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
 
-
           </span>
-
 
           {Object.entries(prices).map(([symbol, price]) => (
 
             <span key={symbol}>{symbol} <span className="text-emerald-400">${(price as number) > 0 ? (price as number).toLocaleString(undefined, { minimumFractionDigits: (price as number) < 1 ? 4 : 2, maximumFractionDigits: (price as number) < 1 ? 4 : 2 }) : '---'}</span></span>
-
 
           ))}
 
@@ -708,112 +697,77 @@ export default function App() {
 
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md z-40 shrink-0 h-12">
 
-
         <div className="max-w-7xl mx-auto px-2 h-full flex items-center justify-between">
-
 
           <div className="flex items-center gap-2">
 
-
             <div className="w-6 h-6 rounded-md bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)]">
-
 
               <Activity className="w-3 h-3 text-emerald-400" />
 
-
             </div>
-
 
             <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent hidden sm:block">
 
-
               CryptoSpin.ai
-
 
             </h1>
 
-
             <div className="hidden sm:flex items-center gap-1 ml-2 px-2 py-0.5 bg-zinc-800 rounded text-[9px] font-mono text-zinc-400">
-
 
               <Database className="w-3 h-3 text-blue-400" /> Local API Connected
 
-
             </div>
-
 
           </div>
 
-
           <div className="flex items-center gap-4">
-
 
             <div className="hidden sm:flex flex-col items-end">
 
-
               <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">House TVL</span>
-
 
               <span className="text-xs font-mono font-bold text-purple-400">${houseLiquidity.toFixed(2)}</span>
 
-
             </div>
-
 
             <div className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-full shadow-inner">
 
-
               <Wallet className="w-3 h-3 text-zinc-500" />
-
 
               <span className="font-mono font-medium text-emerald-400 text-xs">${balance.toFixed(2)}</span>
 
-
             </div>
-
 
             {isLoggedIn ? (
 
               <div className="flex items-center gap-2">
 
-
-                <button onClick={handleDeposit} disabled={isWithdrawing} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
-
+                <button onClick={handleDeposit} disabled={isWithdrawing || tradeResultForAnimation} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
 
                   Deposit
 
-
                 </button>
 
-
-                <button onClick={handleWithdraw} disabled={isWithdrawing} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
-
+                <button onClick={handleWithdraw} disabled={isWithdrawing || tradeResultForAnimation} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
 
                   {isWithdrawing ? '...' : 'Withdraw'}
 
-
                 </button>
 
-
-                <button onClick={handleLogout} disabled={isWithdrawing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full disabled:opacity-50">
-
+                <button onClick={handleLogout} disabled={isWithdrawing || tradeResultForAnimation} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full disabled:opacity-50">
 
                    {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
 
-
                 </button>
 
-
               </div>
-
 
             ) : ( <div /> )}
 
           </div>
 
-
         </div>
-
 
       </header>
 
@@ -822,41 +776,27 @@ export default function App() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-1 sm:p-2 flex flex-col lg:flex-row gap-1 sm:gap-2 min-h-0 overflow-hidden">
 
-
-        
-
         {/* Left: Execution Engine */}
 
         <div className="flex-1 flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 relative shadow-2xl overflow-hidden min-h-0">
 
-
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
-
-
-          
 
           <div className="flex items-center justify-between mb-2 shrink-0">
 
-
             <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1">
-
 
               <Zap className="w-3 h-3 text-emerald-400" /> Engine
 
-
             </h2>
-
 
             {activeTrade && (
 
               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${activeTrade.isWin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
 
-
                 {activeTrade.name}
 
-
               </span>
-
 
             )}
 
@@ -865,184 +805,109 @@ export default function App() {
 
           <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
 
-
             {/* High-Frequency Trade Visualization Background */}
-
             <AnimatePresence>
-
               {spinning && (
-
                 <motion.div
-
                   initial={{ opacity: 0 }}
-
                   animate={{ opacity: 1 }}
-
                   exit={{ opacity: 0 }}
-
                   className="absolute inset-0 overflow-hidden pointer-events-none z-0 flex items-center justify-center"
-
-
                 >
-
-
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.1)_0%,transparent_70%)] animate-pulse" />
-
-
                   {hftVisualData.map((trade) => (
-
                     <motion.div
-
                       key={trade.id}
-
                       initial={{ y: '50vh', opacity: 0, scale: 0.8 }}
-
                       animate={{ y: '-50vh', opacity: [0, 0.6, 0], scale: 1 }}
-
                       transition={{ 
-
                         duration: trade.speed, 
-
                         repeat: Infinity, 
-
                         delay: trade.delay,
-
                         ease: "linear" 
-
                       }}
-
                       className={`absolute text-[10px] font-mono whitespace-nowrap ${trade.isBuy ? 'text-emerald-500/40' : 'text-red-500/40'}`}
-
                       style={{ left: trade.left }}
-
                     >
-
-
                       {trade.isBuy ? 'EXEC BUY' : 'EXEC SELL'} {trade.size} {trade.token} @ {trade.price}
-
-
                     </motion.div>
-
-
                   ))}
-
                 </motion.div>
-
-
               )}
-
             </AnimatePresence>
 
 
-            {/* Grid */}
-
-            <div className="grid grid-cols-5 gap-1 sm:gap-2 w-full max-w-[320px] sm:max-w-[420px] aspect-[5/3] mb-2 shrink-0 relative z-10">
-
+            {/* Grid & Animation Container */}
+            <div className="relative grid grid-cols-5 gap-1 sm:gap-2 w-full max-w-[320px] sm:max-w-[420px] aspect-[5/3] mb-2 shrink-0 z-10">
+              
+              <AnimatePresence>
+                {tradeResultForAnimation && 
+                  <ReelResultAnimation 
+                    result={tradeResultForAnimation} 
+                    onComplete={handleAnimationComplete} 
+                    betAmount={bet} 
+                    winAmount={winAmount} 
+                  />}
+              </AnimatePresence>
 
               {grid.map((row, i) => row.map((token, j) => {
-
                 const isWinningCell = winningCells.some(c => c.r === i && c.c === j);
-
                 const isLosingCell = losingCells.some(c => c.r === i && c.c === j);
-
                 return (
-
                   <div key={`${i}-${j}`} className={`flex flex-col items-center justify-center rounded-lg border-2 shadow-inner relative overflow-hidden bg-zinc-950 transition-all duration-300
-
-
                     ${isWinningCell ? 'border-emerald-500 shadow-[0_0_20px_rgba(52,211,153,0.5)] bg-emerald-500/10' : 
-
                       isLosingCell ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] bg-red-500/10' : 
-
                       `${token.bg} ${token.border}`}`}>
 
-
-
                     <AnimatePresence mode="wait">
-
-
                       <motion.div
-
                         key={spinning ? `spinning-${i}-${j}` : `static-${token.id}-${i}-${j}`}
-
                         initial={spinning ? { y: -30, opacity: 0 } : { y: 10, opacity: 0 }}
-
                         animate={{ y: 0, opacity: 1 }}
-
                         exit={spinning ? { y: 30, opacity: 0 } : { opacity: 0 }}
-
                         transition={spinning ? { repeat: Infinity, duration: 0.1, ease: "linear", delay: j * 0.05 } : { type: "spring", stiffness: 300, damping: 15 }}
-
                         className="flex flex-col items-center justify-center"
-
                       >
-
-
                         <div className={`text-2xl sm:text-3xl ${token.color} drop-shadow-[0_0_10px_currentColor] ${spinning ? 'blur-[1px]' : ''}`}>
-
-
                           {token.symbol}
-
-
                         </div>
-
-
                       </motion.div>
-
-
                     </AnimatePresence>
 
-
                     <div className="absolute bottom-1 text-[6px] sm:text-[7px] font-bold text-white/50 uppercase tracking-wider hidden sm:block">
-
-
                       {token.name}
-
-
                     </div>
-
-
                   </div>
-
-
                 );
-
               }))}
-
             </div>
-
 
             {/* Trade Workflow Visualization */}
 
             <div className="w-full max-w-[280px] bg-zinc-950 border border-zinc-800 rounded-lg p-2 shrink-0">
-
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTrade ? activeTrade.name : 'waiting'}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {activeTrade ? (
+                  {activeTrade && !tradeResultForAnimation ? (
                       <div className="flex justify-between items-center relative">
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-zinc-800 z-0" />
                         {activeTrade.steps.map((step, idx) => {
                           const isActive = activeTrade.currentStep >= idx;
                           const isCurrent = activeTrade.currentStep === idx;
-                          const isLast = idx === activeTrade.steps.length - 1;
-                          const isFailure = isLast && !activeTrade.isWin && isActive;
-
                           return (
                             <div key={idx} className="relative z-10 flex flex-col items-center gap-1 w-1/4">
                               <motion.div 
                                 animate={isActive ? { scale: [1, 1.2, 1] } : {}}
                                 transition={{ duration: 0.3 }}
                                 className={`w-3 h-3 rounded-full border-2 flex items-center justify-center bg-zinc-950
-                                  ${isFailure ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 
-                                    isActive ? 'border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'border-zinc-700'}`}
+                                  ${isActive ? 'border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'border-zinc-700'}`}
                               >
-                                {isActive && <div className={`w-1 h-1 rounded-full ${isFailure ? 'bg-red-500' : 'bg-emerald-500'}`} />}
+                                {isActive && <div className="w-1 h-1 rounded-full bg-emerald-500" />}
                               </motion.div>
                               <span className={`text-[7px] sm:text-[8px] font-mono text-center leading-tight ${isCurrent ? 'text-white font-bold' : isActive ? 'text-zinc-400' : 'text-zinc-600'}`}>
                                 {step}
@@ -1053,383 +918,166 @@ export default function App() {
                       </div>
                   ) : (
                     <div className="w-full text-center text-[9px] font-mono text-zinc-600 py-1">
-                      Awaiting Trade Execution...
+                       {tradeResultForAnimation ? `Trade Complete: ${tradeResultForAnimation.toUpperCase()}` : "Awaiting Trade Execution..."}
                     </div>
                   )}
                 </motion.div>
               </AnimatePresence>
             </div>
 
-
           </div>
 
-
         </div>
-
 
         {/* Right: Controls & Dashboard */}
 
         <div className="w-full lg:w-72 flex flex-col gap-1 sm:gap-2 shrink-0 min-h-0">
 
-
-          
-
           {/* Gamble UI */}
 
           <AnimatePresence>
-
             {gambleMode && (
-
               <motion.div 
-
                 initial={{ opacity: 0, height: 0 }} 
-
                 animate={{ opacity: 1, height: 'auto' }} 
-
                 exit={{ opacity: 0, height: 0 }}
-
                 className="bg-zinc-900 border border-purple-500/50 rounded-xl p-2 shadow-[0_0_20px_rgba(168,85,247,0.15)] shrink-0 overflow-hidden"
-
               >
-
-
                 <div className="flex flex-col items-center gap-2">
-
-
                   <div className="flex justify-between items-center w-full">
-
-
                     <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Gamble Profit</span>
-
-
                     <span className="text-sm font-mono font-bold text-white">${winAmount.toFixed(2)}</span>
-
-
                   </div>
-
-
                   
-
                   <div className="w-12 h-16 bg-white rounded flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-
-
                     {gambleCard ? (
-
                       <span className={gambleCard.color}>{gambleCard.symbol}</span>
-
-
                     ) : (
-
                       <div className="w-full h-full bg-zinc-800 rounded border border-white flex items-center justify-center">
-
-
                         <Zap className="w-4 h-4 text-zinc-600" />
-
-
                       </div>
-
-
                     )}
-
                   </div>
-
 
                   <div className="w-full flex flex-col gap-1">
-
-
                     <div className="flex gap-1">
-
-
                       <button onClick={() => handleGamble('RED')} disabled={!!gambleCard || houseLiquidity < winAmount} className="flex-1 py-1 bg-red-500 hover:bg-red-400 text-white font-bold rounded text-[9px] disabled:opacity-50" title={houseLiquidity < winAmount ? "Not enough House TVL" : ""}>RED (2x)</button>
-
-
                       <button onClick={() => handleGamble('BLACK')} disabled={!!gambleCard || houseLiquidity < winAmount} className="flex-1 py-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded text-[9px] disabled:opacity-50" title={houseLiquidity < winAmount ? "Not enough House TVL" : ""}>BLACK (2x)</button>
-
-
                     </div>
-
-
                     <div className="flex gap-1">
-
-
                       {SUITS.map(s => (
-
                         <button key={s.id} onClick={() => handleGamble('SUIT', s.id)} disabled={!!gambleCard || houseLiquidity < (winAmount * 3)} className="flex-1 py-1 bg-zinc-800 hover:bg-zinc-700 text-sm rounded flex justify-center disabled:opacity-50" title={houseLiquidity < (winAmount * 3) ? "Not enough House TVL" : ""}>
-
-
                           <span className={s.color}>{s.symbol}</span>
-
-
                         </button>
-
-
                       ))}
-
                     </div>
-
-
                     <button onClick={collectWinnings} disabled={!!gambleCard} className="w-full py-1.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 font-bold rounded text-[9px] transition-colors disabled:opacity-50 mt-1">
-
-
                       Take Win & Exit
-
-
                     </button>
-
-
                   </div>
-
-
                 </div>
-
-
               </motion.div>
-
-
             )}
-
           </AnimatePresence>
-
 
           {/* Controls */}
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-xl shrink-0">
-
-
             <div className="mb-1.5">
-
-
               <div className="flex justify-between items-center mb-0.5">
-
-
                 <label className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-
-
                   Risk Profile
-
-
                   <button onClick={() => setShowStrategiesModal(true)} className="text-zinc-500 hover:text-emerald-400 transition-colors" title="View Strategies">
-
-
                     <Info className="w-3 h-3" />
-
-
                   </button>
-
-
                 </label>
-
-
                 <span className="text-[8px] font-mono text-orange-400">VOL: {volatility}%</span>
-
-
               </div>
-
-
               <div className="grid grid-cols-4 gap-1">
-
-
                 {['LOW', 'MED', 'HIGH', 'DEGEN'].map(r => (
-
                   <button 
-
                     key={r} 
-
                     onClick={() => setRiskLevel(r as any)} 
-
-                    disabled={spinning || gambleMode || showFrogAnimation}
-
+                    disabled={spinning || gambleMode || tradeResultForAnimation}
                     className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${riskLevel === r ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'}`}
-
-
                   >
-
-
                     {r}
-
-
                   </button>
-
-
                 ))}
-
               </div>
-
-
             </div>
-
 
             <div className="mb-2">
-
-
               <label className="block text-[9px] font-medium text-zinc-400 mb-0.5 uppercase tracking-wider">Trade Size</label>
-
-
               <div className="grid grid-cols-5 gap-1">
-
-
                 {BET_AMOUNTS.slice(0, 5).map((amount) => (
-
                   <motion.button
-
                     key={amount} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-
-                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || showFrogAnimation}
-
+                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || tradeResultForAnimation}
                     className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
-
-
                   >
-
-
                     ${amount < 1 ? amount.toFixed(2) : amount}
-
-
                   </motion.button>
-
-
                 ))}
-
               </div>
-
-
               <div className="grid grid-cols-4 gap-1 mt-1">
-
-
                 {BET_AMOUNTS.slice(5).map((amount) => (
-
                   <motion.button
-
                     key={amount} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-
-                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || showFrogAnimation}
-
+                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || tradeResultForAnimation}
                     className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
-
-
                   >
-
-
                     ${amount}
-
-
                   </motion.button>
-
-
                 ))}
-
               </div>
-
-
             </div>
-
 
             <div className="flex items-center gap-2 relative">
-
-
               <motion.div
-
                 animate={spinning ? { y: [0, -10, 0], rotate: [0, 10, -10, 0] } : { y: [0, -3, 0] }}
-
                 transition={spinning ? { repeat: Infinity, duration: 0.4 } : { repeat: Infinity, duration: 2, ease: "easeInOut" }}
-
                 className="text-xl sm:text-2xl filter drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-
-
               >
-
-
                 🐸
-
-
               </motion.div>
-
-
               
-
               {winAmount > 0 && !gambleMode ? (
-
                 <>
-
                   <motion.button
-
                     initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-
                     whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
-
                     onClick={collectWinnings}
-
-                    className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all flex items-center justify-center gap-1.5 relative overflow-hidden group"
-
-
+                    disabled={tradeResultForAnimation}
+                    className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all flex items-center justify-center gap-1.5 relative overflow-hidden group disabled:opacity-50"
                   >
-
-
                     TAKE WIN (${winAmount.toFixed(2)})
-
-
                   </motion.button>
 
-
                   <AnimatePresence>
-
                     <motion.button
-
                       initial={{ opacity: 0, scale: 0.5, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.5, y: 20 }}
-
                       whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(168,85,247,0.6)" }} whileTap={{ scale: 0.95 }}
-
                       onClick={() => { playSound('click'); setGambleMode(true); }}
-
-                      disabled={houseLiquidity < winAmount || showFrogAnimation}
-
-                      className={`absolute -top-10 right-0 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400/50 flex items-center justify-center gap-1 z-10 ${houseLiquidity < winAmount ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
-
-
+                      disabled={houseLiquidity < winAmount || tradeResultForAnimation}
+                      className={`absolute -top-10 right-0 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400/50 flex items-center justify-center gap-1 z-10 disabled:opacity-50 disabled:grayscale`}
                       title={houseLiquidity < winAmount ? "Not enough House TVL to gamble" : ""}
-
-
                     >
-
-
                       <Zap className="w-3 h-3 fill-current" /> GAMBLE
-
-
                     </motion.button>
-
-
                   </AnimatePresence>
-
                 </>
-
               ) : (
-
                 <motion.button
-
                   whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
-
-                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn || showFrogAnimation}
-
+                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn || tradeResultForAnimation}
                   className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-1.5 relative overflow-hidden group"
-
-
                 >
-
-
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-
-
                   {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
-
-
-
                 </motion.button>
-
-
               )}
-
             </div>
-
 
           </div>
 
@@ -1438,369 +1086,149 @@ export default function App() {
 
           <div className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl flex flex-col overflow-hidden shadow-xl min-h-0">
 
-
             <div className="bg-zinc-900/80 border-b border-zinc-800 px-1 py-1 flex items-center gap-1 shrink-0">
 
-
               <button 
-
                 onClick={() => setActiveTab('chart')}
-
                 className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'chart' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-
-
               >
-
-
                 <BarChart2 className="w-3 h-3" /> CHART
-
-
               </button>
 
-
               <button 
-
                 onClick={() => setActiveTab('logs')}
-
                 className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${activeTab === 'logs' ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-
-
               >
-
-
                 LOGS
-
-
               </button>
-
 
               <button 
-
                 onClick={() => setActiveTab('ai')}
-
                 className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'ai' ? 'bg-zinc-800 text-purple-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-
-
               >
-
-
                 <Sparkles className="w-3 h-3" /> DEGEN AI
-
-
               </button>
-
 
             </div>
-
 
             <div className="p-2 flex-1 overflow-y-auto min-h-0">
 
-
               {activeTab === 'chart' ? (
-
                 <div className="h-full flex flex-col">
-
-
                   <div className="flex justify-between items-end mb-1">
-
-
                     <div>
-
-
                       <div className="text-[9px] text-zinc-500 font-mono">NET PNL</div>
-
-
                       <div className={`text-sm font-bold font-mono ${balance >= 1000 ? 'text-emerald-400' : 'text-red-400'}`}>
-
-
                         {balance >= 1000 ? '+' : '-'}${Math.abs(balance - 1000).toFixed(2)}
-
-
                       </div>
-
-
                     </div>
-
-
                     <div className="text-right">
-
-
                       <div className="text-[9px] text-zinc-500 font-mono">TRADES</div>
-
-
                       <div className="text-xs font-bold text-white font-mono">{tradeCount}</div>
-
-
                     </div>
-
-
                   </div>
-
 
                   <div className="flex-1 min-h-[100px]">
-
-
                     <ResponsiveContainer width="100%" height="100%">
-
-
                       <LineChart data={chartData}>
-
-
                         <YAxis domain={['auto', 'auto']} hide />
-
-
                         <Tooltip 
-
                           contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace', padding: '4px' }}
-
                           itemStyle={{ color: '#34d399' }}
-
                           formatter={(value: number) => [`$${value.toFixed(2)}`, 'Balance']}
-
                           labelFormatter={(label) => `Trade ${label}`}
-
                         />
-
-
                         <ReferenceLine y={1000} stroke="#3f3f46" strokeDasharray="3 3" />
-
-
                         <Line type="monotone" dataKey="balance" stroke={balance >= 1000 ? '#34d399' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={true} />
-
-
                       </LineChart>
-
-
                     </ResponsiveContainer>
-
-
                   </div>
-
-
                 </div>
-
-
               ) : activeTab === 'logs' ? (
-
                 <div className="space-y-1 flex flex-col justify-end h-full font-mono text-[9px] sm:text-[10px]">
-
-
                   {logs.map((log, i) => (
-
                     <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-1 ${log.includes('PROFIT') || log.includes('WON') ? 'text-emerald-400' : log.includes('Loss') || log.includes('LOST') || log.includes('failed') ? 'text-red-400' : log.includes('API') ? 'text-blue-400' : 'text-zinc-500'}`}>
-
-
-
                       <span className="shrink-0">{'>'}</span>
-
-
                       <span className="break-all">{log}</span>
-
-
                     </motion.div>
-
-
                   ))}
-
                 </div>
-
-
               ) : (
-
                 <div className="space-y-2 h-full flex flex-col">
-
-
                   <div className="grid grid-cols-3 gap-1 shrink-0">
-
-
                     <button onClick={runMarketAnalysis} disabled={aiLoading} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-purple-500/50 transition-colors disabled:opacity-50">
-
-
                       <Brain className="w-3 h-3 text-purple-400" /> ANALYZE
-
-
                     </button>
-
-
                     <button onClick={getMarketNews} disabled={aiLoading} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-emerald-500/50 transition-colors disabled:opacity-50">
-
-
                       <Search className="w-3 h-3 text-emerald-400" /> NEWS
-
-
                     </button>
-
-
                     <button onClick={generateLuckyToken} disabled={aiLoading} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-cyan-500/50 transition-colors disabled:opacity-50">
-
-
                       <ImageIcon className="w-3 h-3 text-cyan-400" /> TOKEN
-
-
                     </button>
-
-
                     <button onClick={toggleLiveAssistant} className={`p-1 border rounded text-[8px] font-bold flex flex-col items-center gap-0.5 transition-colors ${isLive ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-red-500/50'}`}>
-
-
                       <Mic className={`w-3 h-3 ${isLive ? 'animate-pulse' : ''}`} /> {isLive ? 'STOP' : 'VOICE'}
-
-
-
                     </button>
-
-
                     <button onClick={() => fileInputRef.current?.click()} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-orange-500/50 transition-colors">
-
-
                       <ImageIcon className="w-3 h-3 text-orange-400" /> UPLOAD
-
-
                     </button>
-
-
                     <button onClick={generateVeoVideo} disabled={aiLoading || !editingImage} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-pink-500/50 transition-colors disabled:opacity-50">
-
-
                       <Sparkles className="w-3 h-3 text-pink-400" /> VEO
-
-
                     </button>
-
-
                   </div>
-
 
                   <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
 
-
                   {editingImage && (
-
                     <div className="flex gap-1 shrink-0">
-
-
                       <input 
-
                         type="text" value={editPrompt} onChange={(e) => setEditPrompt(e.target.value)} 
-
                         placeholder="Edit prompt..." 
-
                         className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-1.5 py-0.5 text-[9px] focus:outline-none focus:border-purple-500"
-
-
                       />
-
-
                       <button onClick={editImageWithGemini} disabled={aiLoading} className="bg-purple-500 hover:bg-purple-400 text-white px-2 py-0.5 rounded text-[9px] font-bold disabled:opacity-50">
-
-
                         EDIT
-
-
                       </button>
-
-
                     </div>
-
-
                   )}
 
-
                   <div className="flex-1 bg-zinc-950 rounded-lg border border-zinc-800 p-1.5 overflow-y-auto text-[9px] leading-relaxed relative min-h-0">
-
-
                     {aiLoading && (
-
                       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10">
-
-
                         <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-
-
                       </div>
-
-
                     )}
-
                     {generatedVideo ? (
-
                       <video src={generatedVideo} controls autoPlay loop className="w-full rounded border border-zinc-800" />
-
-
                     ) : editingImage ? (
-
                       <div className="space-y-1">
-
-
                         <img src={editingImage} alt="Uploaded" className="w-full rounded border border-zinc-800" />
-
-
                         <p className="text-center text-zinc-500 italic">Ready for Editing/Veo</p>
-
-
                       </div>
-
-
                     ) : generatedImage ? (
-
                       <div className="space-y-1">
-
-
                         <img src={generatedImage} alt="Generated Token" className="w-full rounded border border-zinc-800" />
-
-
                         <p className="text-center text-zinc-500 italic">AI Lucky Token</p>
-
-
                       </div>
-
-
                     ) : aiResponse ? (
-
                       <div className="whitespace-pre-wrap text-zinc-300 font-mono">{aiResponse}</div>
-
-
                     ) : isLive ? (
-
                       <div className="whitespace-pre-wrap text-emerald-400 font-mono italic">{transcription}</div>
-
-
                     ) : (
-
                       <div className="h-full flex items-center justify-center text-zinc-600 text-center italic">
-
-
                         Select an AI tool.
-
-
                       </div>
-
-
                     )}
-
                   </div>
-
-
                 </div>
-
-
               )}
-
             </div>
-
 
           </div>
 
-
         </div>
-
 
       </main>
 
-
     </div>
-
-
   );
-
 }
