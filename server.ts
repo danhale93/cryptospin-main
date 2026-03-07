@@ -1,6 +1,7 @@
 
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Database from 'better-sqlite3';
 
 const app = express();
 const port = 3000;
@@ -8,10 +9,21 @@ const port = 3000;
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY || '');
+const db = new Database('crypto_casino.db');
 
-// In-memory data stores (replace with a database in production)
-const users: Record<string, { balance: number; win_amount: number; free_spins: number }> = {};
-let houseTvl = 100000;
+db.exec(`
+  CREATE TABLE IF NOT EXISTS trade_history (
+    trade_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_address TEXT,
+    bet_amount REAL,
+    risk_level TEXT,
+    is_win BOOLEAN,
+    win_amount REAL,
+    strategy_name TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_address) REFERENCES users (address)
+  )
+`);
 
 const STRATEGIES = {
     "LOW": [
@@ -70,18 +82,25 @@ app.get('/api/strategies', (req, res) => {
 
 app.post('/api/auth', (req, res) => {
     const { address } = req.body;
-    if (!users[address]) {
-        users[address] = { balance: 1000, win_amount: 0, free_spins: 0 };
+    let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    if (!user) {
+        db.prepare('INSERT INTO users (address, balance, win_amount, free_spins) VALUES (?, ?, ?, ?)')
+          .run(address, 1000, 0, 0);
+        user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     }
-    res.json({ user: users[address], houseTvl });
+    const house = db.prepare('SELECT * FROM house').get();
+    res.json({ user, houseTvl: house.tvl });
 });
 
 app.post('/api/deposit', (req, res) => {
     const { address, amount } = req.body;
-    if (users[address]) {
-        users[address].balance += amount;
-        houseTvl += amount;
-        res.json({ balance: users[address].balance, houseTvl });
+    const user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    if (user) {
+        db.prepare('UPDATE users SET balance = balance + ? WHERE address = ?').run(amount, address);
+        db.prepare('UPDATE house SET tvl = tvl + ?').run(amount);
+        const updatedUser = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+        const house = db.prepare('SELECT * FROM house').get();
+        res.json({ balance: updatedUser.balance, houseTvl: house.tvl });
     } else {
         res.status(404).json({ error: "User not found" });
     }
@@ -89,11 +108,14 @@ app.post('/api/deposit', (req, res) => {
 
 app.post('/api/withdraw', (req, res) => {
     const { address, amount } = req.body;
-    if (users[address]) {
-        if (users[address].balance >= amount) {
-            users[address].balance -= amount;
-            houseTvl -= amount;
-            res.json({ balance: users[address].balance, houseTvl, message: `Withdrawal of $${amount} successful.` });
+    const user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    if (user) {
+        if (user.balance >= amount) {
+            db.prepare('UPDATE users SET balance = balance - ? WHERE address = ?').run(amount, address);
+            db.prepare('UPDATE house SET tvl = tvl - ?').run(amount);
+            const updatedUser = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+            const house = db.prepare('SELECT * FROM house').get();
+            res.json({ balance: updatedUser.balance, houseTvl: house.tvl, message: `Withdrawal of $${amount} successful.` });
         } else {
             res.json({ error: "Insufficient balance." });
         }
@@ -107,40 +129,58 @@ const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() =>
 app.post('/api/spin', (req, res) => {
     const { address, betAmount, riskLevel } = req.body;
 
-    if (!users[address]) {
+    let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+
+    if (!user) {
         return res.status(400).json({ error: "User not found" });
     }
-
-    const user = users[address];
 
     if (user.balance < betAmount && user.free_spins === 0) {
         return res.status(400).json({ error: "Insufficient funds" });
     }
-
+    
+    let isFreeSpin = false;
     if (user.free_spins > 0) {
-        user.free_spins--;
+        db.prepare('UPDATE users SET free_spins = free_spins - 1 WHERE address = ?').run(address);
+        isFreeSpin = true;
     } else {
-        user.balance -= betAmount;
+        db.prepare('UPDATE users SET balance = balance - ? WHERE address = ?').run(betAmount, address);
     }
 
     const finalGrid = generateGrid();
     const scatters = finalGrid.flat().filter(t => t.id === 'SCATTER').length;
 
     if (scatters >= 3) {
-        user.free_spins += 5;
+        db.prepare('UPDATE users SET free_spins = free_spins + 5 WHERE address = ?').run(address);
     }
 
     const riskStrategies = STRATEGIES[riskLevel as keyof typeof STRATEGIES];
     const strategy = riskStrategies[Math.floor(Math.random() * riskStrategies.length)];
 
     const isWin = Math.random() < 0.4; // 40% win chance
-    let winMultiplier = 0;
+    let winAmount = 0;
 
     if (isWin) {
         const line = finalGrid[1];
-        winMultiplier = line.reduce((acc, token) => acc + token.mult, 0);
-        user.win_amount = betAmount * winMultiplier;
+        const winMultiplier = line.reduce((acc, token) => acc + token.mult, 0);
+        if (isFreeSpin) {
+            winAmount = winMultiplier;
+            db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(winAmount, address);
+        } else {
+            winAmount = betAmount * winMultiplier;
+            db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(winAmount, address);
+        }
+    } else {
+        db.prepare('UPDATE users SET win_amount = 0 WHERE address = ?').run(address);
     }
+    
+    db.prepare(`
+      INSERT INTO trade_history (user_address, bet_amount, risk_level, is_win, win_amount, strategy_name)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(address, betAmount, riskLevel, isWin, winAmount, strategy.name);
+
+    user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    const house = db.prepare('SELECT * FROM house').get();
 
 
     res.json({
@@ -149,52 +189,63 @@ app.post('/api/spin', (req, res) => {
         strategy,
         scatters,
         user,
-        houseTvl
+        houseTvl: house.tvl
     });
 });
 
 app.post('/api/gamble', (req, res) => {
     const { address, type, suitId } = req.body;
-    if (!users[address]) return res.status(400).json({ error: "User not found" });
+    let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    if (!user) return res.status(400).json({ error: "User not found" });
 
-    const user = users[address];
     if (user.win_amount <= 0) return res.status(400).json({ error: "No active winnings to gamble" });
 
     const drawnCard = SUITS[Math.floor(Math.random() * SUITS.length)];
     let won = false;
+    let newWinAmount = 0;
 
     if (type === 'RED' && drawnCard.type === 'RED') {
         won = true;
-        user.win_amount *= 2;
+        newWinAmount = user.win_amount * 2;
     } else if (type === 'BLACK' && drawnCard.type === 'BLACK') {
         won = true;
-        user.win_amount *= 2;
+        newWinAmount = user.win_amount * 2;
     } else if (type === 'SUIT' && drawnCard.id === suitId) {
         won = true;
-        user.win_amount *= 4;
+        newWinAmount = user.win_amount * 4;
     }
-
-    if (!won) {
-        user.win_amount = 0;
-    }
+    
+    db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(newWinAmount, address);
+    user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    const house = db.prepare('SELECT * FROM house').get();
 
     res.json({
         won,
         drawnCard,
         newWinAmount: user.win_amount,
-        houseTvl
+        houseTvl: house.tvl
     });
 });
 
 app.post('/api/collect', (req, res) => {
     const { address } = req.body;
-    if (!users[address]) return res.status(400).json({ error: "User not found" });
+    let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    if (!user) return res.status(400).json({ error: "User not found" });
 
-    const user = users[address];
-    user.balance += user.win_amount;
-    user.win_amount = 0;
+    db.prepare('UPDATE users SET balance = balance + win_amount, win_amount = 0 WHERE address = ?').run(address);
+    
+    user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
 
     res.json({ balance: user.balance });
+});
+
+app.get('/api/trade-history', (req, res) => {
+    const { address } = req.query;
+    if (!address) {
+        return res.status(400).json({ error: "Address is required" });
+    }
+    const trades = db.prepare('SELECT * FROM trade_history WHERE user_address = ? ORDER BY timestamp DESC').all(address);
+    res.json(trades);
 });
 
 
