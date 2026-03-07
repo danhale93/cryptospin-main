@@ -202,6 +202,8 @@ export default function App() {
         addLog(`API auth failed with status: ${res.status}`);
         const errorText = await res.text();
         addLog(`Error: ${errorText}`);
+        // If auth fails, log out the user to prevent inconsistent state
+        handleLogout();
         return;
       }
 
@@ -223,6 +225,8 @@ export default function App() {
       if (e.message) {
         addLog(`Error details: ${e.message}`);
       }
+      // If any part of the login process fails, ensure the user is logged out
+      handleLogout();
     }
   };
   
