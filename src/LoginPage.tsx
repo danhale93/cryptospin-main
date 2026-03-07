@@ -59,6 +59,13 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
     }
   };
 
+  const handleTempWallet = () => {
+    addLog("Creating a temporary wallet for development...");
+    const randomWallet = ethers.Wallet.createRandom();
+    addLog(`Created temporary wallet: ${randomWallet.address.slice(0,6)}...${randomWallet.address.slice(-4)}`);
+    onLogin(randomWallet.address);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-white">
       <div className="w-full max-w-md p-8 space-y-8 bg-zinc-900 rounded-xl shadow-lg border border-zinc-800">
@@ -67,10 +74,10 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
             CryptoSpin.ai
           </h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Connect your wallet to start playing.
+            Connect a wallet to start playing.
           </p>
         </div>
-
+        
         <div className="flex flex-col space-y-4">
           {providers.length > 0 ? (
             providers.map((p) => (
@@ -84,11 +91,29 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
               </button>
             ))
           ) : (
-            <div className="text-center text-zinc-500 font-mono">
-              <p>Searching for wallets...</p>
-              <p className="text-xs mt-2">Please make sure your wallet extension is enabled.</p>
+            <div className="text-center text-zinc-500 font-mono p-4 bg-zinc-950 rounded-lg border border-dashed border-zinc-700">
+              <p className='text-yellow-400/80'>No browser wallet extensions found.</p>
+              <p className="text-xs mt-2 text-zinc-600">This is expected inside the IDE. Use a temporary wallet to continue.</p>
             </div>
           )}
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-zinc-700" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-zinc-900 text-zinc-500">OR</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col space-y-2">
+            <button
+                onClick={handleTempWallet}
+                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-purple-600/80 rounded-lg hover:bg-purple-500/80 transition-colors"
+            >
+                <span className="text-lg font-semibold">Create Temporary Wallet</span>
+            </button>
         </div>
       </div>
     </div>

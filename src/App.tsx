@@ -27,6 +27,74 @@ const SUITS = [
 
 const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() => TOKENS[Math.floor(Math.random() * TOKENS.length)]));
 
+// Frog Leap Animation Component
+const FrogLeapAnimation = ({ result, onComplete, betAmount, winAmount } : { result: 'win' | 'loss', onComplete: () => void, betAmount: number, winAmount: number }) => {
+  const winText = `+$${winAmount.toFixed(2)}`;
+  const lossText = `-$${betAmount.toFixed(2)}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, backdropFilter: 'blur(8px)' }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center font-mono"
+    >
+      <div className="w-full max-w-md h-48 bg-zinc-900 border-2 border-zinc-700 rounded-xl p-4 relative flex flex-col items-center justify-end shadow-2xl overflow-hidden">
+        {/* Platforms */}
+        <div className="absolute bottom-8 left-0 w-1/3 h-10 bg-zinc-800 border-t-4 border-emerald-500 rounded-r-lg" />
+        <div className="absolute bottom-8 right-0 w-1/3 h-10 bg-zinc-800 border-t-4 border-emerald-500 rounded-l-lg" />
+        <AnimatePresence>
+          {result === 'loss' && (
+              <motion.div 
+                  initial={{ opacity: 0}} 
+                  animate={{ opacity: 1}} 
+                  className="absolute bottom-8 left-1/2 w-4 h-1 bg-red-500 rounded-full shadow-[0_0_10px_red]" 
+              />
+          )}
+        </AnimatePresence>
+
+        {/* Frog */}
+        <motion.div
+          initial={{ x: "-140px", y: 0, rotate: 0 }}
+          animate={{
+            x: result === 'win' ? "140px" : "0px",
+            y: result === 'win' ? [0, -80, 0] : [0, -40, 100],
+            rotate: result === 'win' ? [0, 20, 0] : 0,
+          }}
+          transition={{
+            duration: 1.5,
+            ease: "easeInOut",
+            delay: 0.5,
+          }}
+          className="text-4xl z-10"
+        >
+          🐸
+        </motion.div>
+
+        {/* Result Text */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.2 }}
+          className={`absolute top-4 text-3xl font-black ${result === 'win' ? 'text-emerald-400' : 'text-red-500'}`}
+        >
+          {result === 'win' ? `PROFIT: ${winText}` : `LOSS: ${lossText}`}
+        </motion.div>
+
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.8 }}
+          onClick={onComplete}
+          className="absolute bottom-2 right-2 text-xs px-2 py-0.5 bg-zinc-800 rounded hover:bg-zinc-700"
+        >
+          Continue
+        </motion.button>
+      </div>
+    </motion.div>
+  )
+}
+
 const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gambleLose' | 'freeSpinTrigger') => {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -133,10 +201,12 @@ export default function App() {
   // Live Data
   const [prices, setPrices] = useState<Record<string, number>>({ BTC: 0, ETH: 0, SOL: 0, XRP: 0, ADA: 0, AVAX: 0, LINK: 0, DOGE: 0 });
 
-  // Tracker & Workflow State
+  // Trade & Animation State
   const [chartData, setChartData] = useState<{ trade: number, balance: number }[]>([{ trade: 0, balance: 1000 }]);
   const [tradeCount, setTradeCount] = useState(0);
   const [activeTrade, setActiveTrade] = useState<{ name: string, steps: string[], currentStep: number, isWin: boolean } | null>(null);
+  const [showFrogAnimation, setShowFrogAnimation] = useState(false);
+  const [lastTradeResult, setLastTradeResult] = useState<"win" | "loss">("loss");
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
 
@@ -159,12 +229,12 @@ export default function App() {
       if (winAmount > 0) {
         const t = setTimeout(() => collectWinnings(), 1500);
         return () => clearTimeout(t);
-      } else {
+      } else if (!showFrogAnimation) { // Don't auto-spin if the frog is leaping
         const t = setTimeout(() => handleSpin(), 1500);
         return () => clearTimeout(t);
       }
     }
-  }, [freeSpins, spinning, winAmount]);
+  }, [freeSpins, spinning, winAmount, showFrogAnimation]);
 
   useEffect(() => {
     const fetchPrices = async () => {
@@ -202,7 +272,6 @@ export default function App() {
         addLog(`API auth failed with status: ${res.status}`);
         const errorText = await res.text();
         addLog(`Error: ${errorText}`);
-        // If auth fails, log out the user to prevent inconsistent state
         handleLogout();
         return;
       }
@@ -210,7 +279,6 @@ export default function App() {
       const data = await res.json();
       addLog('Backend authentication successful. Updating state.');
       
-      // Update state atomically
       setBalance(data.user.balance);
       setWinAmount(data.user.win_amount);
       setFreeSpins(data.user.free_spins);
@@ -225,7 +293,6 @@ export default function App() {
       if (e.message) {
         addLog(`Error details: ${e.message}`);
       }
-      // If any part of the login process fails, ensure the user is logged out
       handleLogout();
     }
   };
@@ -305,7 +372,6 @@ export default function App() {
   const [editPrompt, setEditPrompt] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Memoize random trade data for visualization to prevent jumping on re-renders
   const hftVisualData = useMemo(() => {
     return Array.from({ length: 40 }).map((_, i) => ({
       id: i,
@@ -363,6 +429,23 @@ export default function App() {
     }
   };
 
+  const handleAnimationComplete = () => {
+    setShowFrogAnimation(false);
+    if (lastTradeResult === 'win') {
+      playSound('win');
+      const activeTradeName = activeTrade?.name || 'Trade';
+      setWinLines([`${activeTradeName} Successful`]);
+      setWinningCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
+      addLog(`[TX] ${activeTradeName} closed in PROFIT! +$${winAmount.toFixed(2)}`);
+    } else {
+      playSound('lose');
+      const activeTradeName = activeTrade?.name || 'Trade';
+      setLosingCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
+      addLog(`[TX] ${activeTradeName} failed. Loss: -$${bet.toFixed(2)}`);
+      setTimeout(() => setActiveTrade(null), 2000);
+    }
+  };
+
   const handleSpin = async () => {
     if (!isLoggedIn) return addLog('ERROR: Connect Web3 wallet first.');
     if (spinning || winAmount > 0) return;
@@ -376,9 +459,10 @@ export default function App() {
     setWinningCells([]);
     setLosingCells([]);
     setGambleMode(false);
+    setActiveTrade(null); // Clear previous trade info
     
     if (freeSpins > 0) {
-        addLog(`[FREE SPIN] ${freeSpins} remaining...`);
+        addLog(`[FREE SPIN] ${freeSpins > 1 ? `${freeSpins} remaining...` : 'Last one!'}` );
     }
     
     addLog(`[API] Routing trade to Backend...`);
@@ -396,61 +480,59 @@ export default function App() {
 
       const { finalGrid, isWin, strategy, scatters, user, houseTvl } = data;
       
-      setActiveTrade({ name: strategy.name, steps: strategy.steps, currentStep: 0, isWin });
+      const currentTrade = { name: strategy.name, steps: strategy.steps, currentStep: 0, isWin };
+      setActiveTrade(currentTrade);
       addLog(`[API] Initiating ${strategy.name} at $${bet} (${riskLevel} Risk)...`);
 
-      // Animate Grid & Log Steps
       for (let i = 0; i < 10; i++) {
         playSound('spin');
         setGrid(generateGrid());
         if (i === 2) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 1 } : null);
-          addLog(`[STEP 1] ${strategy.steps[0]} - Analyzing mempool & orderbooks...`);
+          addLog(`[STEP 1] ${strategy.steps[0]} - Analyzing markets...`);
         }
         if (i === 5) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 2 } : null);
-          const asset = TOKENS[Math.floor(Math.random() * (TOKENS.length - 1))]; // Exclude scatter
+          const asset = TOKENS[Math.floor(Math.random() * (TOKENS.length - 1))];
           const price = prices[asset.id as keyof typeof prices] || (Math.random() * 1000).toFixed(2);
-          addLog(`[STEP 2] ${strategy.steps[1]} - Target asset: ${asset.name} @ $${price}`);
+          addLog(`[STEP 2] ${strategy.steps[1]} - Target: ${asset.name} @ $${price}`);
         }
         if (i === 8) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 3 } : null);
-          addLog(`[STEP 3] ${strategy.steps[2]} - Executing payload...`);
+          addLog(`[STEP 3] ${strategy.steps[2]} - Executing...`);
         }
         await new Promise(r => setTimeout(r, 150));
       }
+      
+      addLog(`[STEP 4] ${strategy.steps[3]} - Finalizing...`);
+      setActiveTrade(prev => prev ? { ...prev, currentStep: 4 } : null);
 
       setGrid(finalGrid);
       setSpinning(false);
 
-      // Sync state with backend response
+      // Sync state with backend response before animation
       setBalance(user.balance);
       setFreeSpins(user.free_spins);
       setWinAmount(user.win_amount);
       setHouseLiquidity(houseTvl);
+      setLastTradeResult(isWin ? 'win' : 'loss');
 
       if (scatters >= 3) {
         playSound('freeSpinTrigger');
-        addLog(`🎰 ${user.free_spins - freeSpins + 5} FREE SPINS TRIGGERED! 🎰`); // Calculate how many were added
+        addLog(`🎰 ${user.free_spins - freeSpins + 5} FREE SPINS TRIGGERED! 🎰`);
       }
 
-      // Process Result
+      // Set chart data immediately
       if (isWin) {
-        playSound('win');
-        setWinLines([`${strategy.name} Successful`]);
-        setWinningCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
-        addLog(`[STEP 4] ${strategy.steps[3]} - SUCCESS!`);
-        addLog(`[TX] ${strategy.name} closed in PROFIT! +$${user.win_amount.toFixed(2)}`);
         setChartData(prev => [...prev, { trade: tradeCount + 1, balance: user.balance + user.win_amount }]);
       } else {
-        playSound('lose');
-        setLosingCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
-        addLog(`[STEP 4] ${strategy.steps[3]} - FAILED (Slippage/Outbid)`);
-        addLog(`[TX] ${strategy.name} failed. Loss: -$${bet.toFixed(2)}`);
         setChartData(prev => [...prev, { trade: tradeCount + 1, balance: user.balance }]);
-        setTimeout(() => setActiveTrade(null), 2000);
       }
       setTradeCount(c => c + 1);
+
+      // Trigger the frog animation!
+      setShowFrogAnimation(true);
+
     } catch (e) {
       addLog(`ERROR: Backend connection failed.`);
       setSpinning(false);
@@ -460,7 +542,7 @@ export default function App() {
   const handleGamble = async (type: 'RED' | 'BLACK' | 'SUIT', suitId?: string) => {
     if (winAmount <= 0) return;
     playSound('click');
-    const originalWinAmount = winAmount; // Store original win amount before gamble
+    const originalWinAmount = winAmount;
     
     try {
       const res = await fetch('/api/gamble', {
@@ -491,8 +573,6 @@ export default function App() {
         setChartData(prev => {
           const newData = [...prev];
           const lastEntry = newData[newData.length - 1];
-          // The loss was already accounted for in the balance from the spin, 
-          // but the profit from the win needs to be removed from the chart.
           if (lastEntry) {
             newData[newData.length - 1] = { ...lastEntry, balance: lastEntry.balance - originalWinAmount };
           }
@@ -590,13 +670,8 @@ export default function App() {
   return (
     <div className="h-[100dvh] bg-zinc-950 text-zinc-100 font-sans flex flex-col overflow-hidden text-sm">
 
-
-      {/* Global Win/Lose Popups */}
-
       <AnimatePresence>
-
-        {/* Removed global popups to keep reels unobstructed */}
-
+        {showFrogAnimation && <FrogLeapAnimation result={lastTradeResult} onComplete={handleAnimationComplete} betAmount={bet} winAmount={winAmount} />}
       </AnimatePresence>
 
 
@@ -941,80 +1016,48 @@ export default function App() {
 
             <div className="w-full max-w-[280px] bg-zinc-950 border border-zinc-800 rounded-lg p-2 shrink-0">
 
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTrade ? activeTrade.name : 'waiting'}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {activeTrade ? (
+                      <div className="flex justify-between items-center relative">
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-zinc-800 z-0" />
+                        {activeTrade.steps.map((step, idx) => {
+                          const isActive = activeTrade.currentStep >= idx;
+                          const isCurrent = activeTrade.currentStep === idx;
+                          const isLast = idx === activeTrade.steps.length - 1;
+                          const isFailure = isLast && !activeTrade.isWin && isActive;
 
-              <div className="flex justify-between items-center relative">
-
-
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-zinc-800 z-0" />
-
-
-                {activeTrade ? activeTrade.steps.map((step, idx) => {
-
-                  const isActive = activeTrade.currentStep >= idx;
-
-                  const isCurrent = activeTrade.currentStep === idx;
-
-                  const isLast = idx === activeTrade.steps.length - 1;
-
-                  const isFailure = isLast && !activeTrade.isWin && isActive;
-
-                  return (
-
-                    <div key={idx} className="relative z-10 flex flex-col items-center gap-1 w-1/4">
-
-
-                      <motion.div 
-
-                        animate={isActive ? { scale: [1, 1.2, 1] } : {}}
-
-                        transition={{ duration: 0.3 }}
-
-                        className={`w-3 h-3 rounded-full border-2 flex items-center justify-center bg-zinc-950
-
-
-                          ${isFailure ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 
-
-                            isActive ? 'border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'border-zinc-700'}`}
-
-
-                      >
-
-
-                        {isActive && <div className={`w-1 h-1 rounded-full ${isFailure ? 'bg-red-500' : 'bg-emerald-500'}`} />}
-
-                      </motion.div>
-
-
-                      <span className={`text-[7px] sm:text-[8px] font-mono text-center leading-tight ${isCurrent ? 'text-white font-bold' : isActive ? 'text-zinc-400' : 'text-zinc-600'}`}>
-
-
-                        {step}
-
-
-                      </span>
-
-
+                          return (
+                            <div key={idx} className="relative z-10 flex flex-col items-center gap-1 w-1/4">
+                              <motion.div 
+                                animate={isActive ? { scale: [1, 1.2, 1] } : {}}
+                                transition={{ duration: 0.3 }}
+                                className={`w-3 h-3 rounded-full border-2 flex items-center justify-center bg-zinc-950
+                                  ${isFailure ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 
+                                    isActive ? 'border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'border-zinc-700'}`}
+                              >
+                                {isActive && <div className={`w-1 h-1 rounded-full ${isFailure ? 'bg-red-500' : 'bg-emerald-500'}`} />}
+                              </motion.div>
+                              <span className={`text-[7px] sm:text-[8px] font-mono text-center leading-tight ${isCurrent ? 'text-white font-bold' : isActive ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                                {step}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                  ) : (
+                    <div className="w-full text-center text-[9px] font-mono text-zinc-600 py-1">
+                      Awaiting Trade Execution...
                     </div>
-
-
-                  );
-
-                }) : (
-
-                  <div className="w-full text-center text-[9px] font-mono text-zinc-600 py-1">
-
-
-                    Awaiting Trade Execution...
-
-
-                  </div>
-
-
-                )}
-
-              </div>
-
-
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
 
@@ -1194,7 +1237,7 @@ export default function App() {
 
                     onClick={() => setRiskLevel(r as any)} 
 
-                    disabled={spinning || gambleMode}
+                    disabled={spinning || gambleMode || showFrogAnimation}
 
                     className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${riskLevel === r ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'}`}
 
@@ -1231,7 +1274,7 @@ export default function App() {
 
                     key={amount} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
 
-                    onClick={() => setBet(amount)} disabled={spinning || gambleMode}
+                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || showFrogAnimation}
 
                     className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
 
@@ -1259,7 +1302,7 @@ export default function App() {
 
                     key={amount} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
 
-                    onClick={() => setBet(amount)} disabled={spinning || gambleMode}
+                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || showFrogAnimation}
 
                     className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
 
@@ -1338,7 +1381,7 @@ export default function App() {
 
                       onClick={() => { playSound('click'); setGambleMode(true); }}
 
-                      disabled={houseLiquidity < winAmount}
+                      disabled={houseLiquidity < winAmount || showFrogAnimation}
 
                       className={`absolute -top-10 right-0 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400/50 flex items-center justify-center gap-1 z-10 ${houseLiquidity < winAmount ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
 
@@ -1365,7 +1408,7 @@ export default function App() {
 
                   whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
 
-                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn}
+                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn || showFrogAnimation}
 
                   className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-1.5 relative overflow-hidden group"
 
