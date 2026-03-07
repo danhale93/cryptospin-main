@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm-run-all --parallel dev:*",
-    "dev:client": "vite",
+    "dev:client": "vite --host 0.0.0.0",
     "dev:api": "tsx server.ts",
     "start": "NODE_ENV=production node --experimental-strip-types server.ts",
     "build": "vite build",
