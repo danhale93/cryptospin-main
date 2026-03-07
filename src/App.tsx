@@ -1,33 +1,33 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, BarChart2, Server, Database, X, Info } from 'lucide-react';
-import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
-import LoginPage from './LoginPage';
+import React, { useState, useEffect, useRef, useMemo } from \'react\';
+import { motion, AnimatePresence } from \'framer-motion\';
+import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, BarChart2, Server, Database, X, Info } from \'lucide-react\';
+import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from \'recharts\';
+import LoginPage from \'./LoginPage\';
 
 const TOKENS = [
-  { id: 'BTC', symbol: '₿', color: 'text-orange-500', bg: 'bg-orange-500/20', border: 'border-orange-500/50', name: 'Bitcoin', mult: 10 },
-  { id: 'ETH', symbol: 'Ξ', color: 'text-blue-400', bg: 'bg-blue-400/20', border: 'border-blue-400/50', name: 'Ethereum', mult: 5 },
-  { id: 'SOL', symbol: '◎', color: 'text-purple-400', bg: 'bg-purple-400/20', border: 'border-purple-400/50', name: 'Solana', mult: 3 },
-  { id: 'DOGE', symbol: 'Ð', color: 'text-yellow-400', bg: 'bg-yellow-400/20', border: 'border-yellow-400/50', name: 'Dogecoin', mult: 2 },
-  { id: 'USDT', symbol: '₮', color: 'text-emerald-400', bg: 'bg-emerald-400/20', border: 'border-emerald-400/50', name: 'Tether', mult: 0.5 },
-  { id: 'XRP', symbol: '✕', color: 'text-gray-400', bg: 'bg-gray-400/20', border: 'border-gray-400/50', name: 'Ripple', mult: 1.5 },
-  { id: 'ADA', symbol: '₳', color: 'text-blue-300', bg: 'bg-blue-300/20', border: 'border-blue-300/50', name: 'Cardano', mult: 1.2 },
-  { id: 'AVAX', symbol: '🔺', color: 'text-red-400', bg: 'bg-red-400/20', border: 'border-red-400/50', name: 'Avalanche', mult: 2.5 },
-  { id: 'LINK', symbol: '🔗', color: 'text-blue-500', bg: 'bg-blue-500/20', border: 'border-blue-500/50', name: 'Chainlink', mult: 2 },
-  { id: 'SCATTER', symbol: '🎰', color: 'text-pink-500', bg: 'bg-pink-500/20', border: 'border-pink-500/50', name: 'Free Spins', mult: 0 },
+  { id: \'BTC\', symbol: \'₿\', color: \'text-orange-500\', bg: \'bg-orange-500/20\', border: \'border-orange-500/50\', name: \'Bitcoin\', mult: 10 },
+  { id: \'ETH\', symbol: \'Ξ\', color: \'text-blue-400\', bg: \'bg-blue-400/20\', border: \'border-blue-400/50\', name: \'Ethereum\', mult: 5 },
+  { id: \'SOL\', symbol: \'◎\', color: \'text-purple-400\', bg: \'bg-purple-400/20\', border: \'border-purple-400/50\', name: \'Solana\', mult: 3 },
+  { id: \'DOGE\', symbol: \'Ð\', color: \'text-yellow-400\', bg: \'bg-yellow-400/20\', border: \'border-yellow-400/50\', name: \'Dogecoin\', mult: 2 },
+  { id: \'USDT\', symbol: \'₮\', color: \'text-emerald-400\', bg: \'bg-emerald-400/20\', border: \'border-emerald-400/50\', name: \'Tether\', mult: 0.5 },
+  { id: \'XRP\', symbol: \'✕\', color: \'text-gray-400\', bg: \'bg-gray-400/20\', border: \'border-gray-400/50\', name: \'Ripple\', mult: 1.5 },
+  { id: \'ADA\', symbol: \'₳\', color: \'text-blue-300\', bg: \'bg-blue-300/20\', border: \'border-blue-300/50\', name: \'Cardano\', mult: 1.2 },
+  { id: \'AVAX\', symbol: \'🔺\', color: \'text-red-400\', bg: \'bg-red-400/20\', border: \'border-red-400/50\', name: \'Avalanche\', mult: 2.5 },
+  { id: \'LINK\', symbol: \'🔗\', color: \'text-blue-500\', bg: \'bg-blue-500/20\', border: \'border-blue-500/50\', name: \'Chainlink\', mult: 2 },
+  { id: \'SCATTER\', symbol: \'🎰\', color: \'text-pink-500\', bg: \'bg-pink-500/20\', border: \'border-pink-500/50\', name: \'Free Spins\', mult: 0 },
 ];
 
 const BET_AMOUNTS = [0.5, 1, 2, 5, 10, 50, 100, 500, 1000];
 const SUITS = [
-  { id: 'HEART', symbol: '♥', color: 'text-red-500', type: 'RED' },
-  { id: 'DIAMOND', symbol: '♦', color: 'text-red-500', type: 'RED' },
-  { id: 'SPADE', symbol: '♠', color: 'text-zinc-800', type: 'BLACK' },
-  { id: 'CLUB', symbol: '♣', color: 'text-zinc-800', type: 'BLACK' }
+  { id: \'HEART\', symbol: \'♥\', color: \'text-red-500\', type: \'RED\' },
+  { id: \'DIAMOND\', symbol: \'♦\', color: \'text-red-500\', type: \'RED\' },
+  { id: \'SPADE\', symbol: \'♠\', color: \'text-zinc-800\', type: \'BLACK\' },
+  { id: \'CLUB\', symbol: \'♣\', color: \'text-zinc-800\', type: \'BLACK\' }
 ];
 
 const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() => TOKENS[Math.floor(Math.random() * TOKENS.length)]));
 
-const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gambleLose' | 'freeSpinTrigger') => {
+const playSound = (type: \'spin\' | \'win\' | \'lose\' | \'click\' | \'gambleWin\' | \'gambleLose\' | \'freeSpinTrigger\') => {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
@@ -40,24 +40,24 @@ const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gamb
     
     const now = ctx.currentTime;
     
-    if (type === 'click') {
-      osc.type = 'sine';
+    if (type === \'click\') {
+      osc.type = \'sine\';
       osc.frequency.setValueAtTime(600, now);
       osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
       osc.start(now);
       osc.stop(now + 0.1);
-    } else if (type === 'spin') {
-      osc.type = 'triangle';
+    } else if (type === \'spin\') {
+      osc.type = \'triangle\';
       osc.frequency.setValueAtTime(200, now);
       osc.frequency.linearRampToValueAtTime(400, now + 0.1);
       gain.gain.setValueAtTime(0.05, now);
       gain.gain.linearRampToValueAtTime(0, now + 0.1);
       osc.start(now);
       osc.stop(now + 0.1);
-    } else if (type === 'win') {
-      osc.type = 'square';
+    } else if (type === \'win\') {
+      osc.type = \'square\';
       [400, 500, 600, 800, 1000, 1200].forEach((freq, i) => {
         osc.frequency.setValueAtTime(freq, now + i * 0.1);
       });
@@ -65,8 +65,8 @@ const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gamb
       gain.gain.linearRampToValueAtTime(0, now + 0.6);
       osc.start(now);
       osc.stop(now + 0.6);
-    } else if (type === 'freeSpinTrigger') {
-      osc.type = 'sawtooth';
+    } else if (type === \'freeSpinTrigger\') {
+      osc.type = \'sawtooth\';
       [300, 600, 400, 800, 500, 1000, 600, 1200].forEach((freq, i) => {
         osc.frequency.setValueAtTime(freq, now + i * 0.1);
       });
@@ -74,16 +74,16 @@ const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gamb
       gain.gain.linearRampToValueAtTime(0, now + 0.8);
       osc.start(now);
       osc.stop(now + 0.8);
-    } else if (type === 'lose') {
-      osc.type = 'sawtooth';
+    } else if (type === \'lose\') {
+      osc.type = \'sawtooth\';
       osc.frequency.setValueAtTime(300, now);
       osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.linearRampToValueAtTime(0, now + 0.3);
       osc.start(now);
       osc.stop(now + 0.3);
-    } else if (type === 'gambleWin') {
-      osc.type = 'square';
+    } else if (type === \'gambleWin\') {
+      osc.type = \'square\';
       osc.frequency.setValueAtTime(500, now);
       osc.frequency.setValueAtTime(750, now + 0.1);
       osc.frequency.setValueAtTime(1000, now + 0.2);
@@ -91,8 +91,8 @@ const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gamb
       gain.gain.linearRampToValueAtTime(0, now + 0.4);
       osc.start(now);
       osc.stop(now + 0.4);
-    } else if (type === 'gambleLose') {
-      osc.type = 'sawtooth';
+    } else if (type === \'gambleLose\') {
+      osc.type = \'sawtooth\';
       osc.frequency.setValueAtTime(200, now);
       osc.frequency.exponentialRampToValueAtTime(50, now + 0.4);
       gain.gain.setValueAtTime(0.1, now);
@@ -118,9 +118,9 @@ export default function App() {
   const [freeSpins, setFreeSpins] = useState(0);
   const [gambleMode, setGambleMode] = useState(false);
   const [gambleCard, setGambleCard] = useState<typeof SUITS[0] | null>(null);
-  const [logs, setLogs] = useState<string[]>(['System initialized.']);
-  const [activeTab, setActiveTab] = useState<'chart' | 'logs' | 'ai'>('chart');
-  const [riskLevel, setRiskLevel] = useState<'LOW' | 'MED' | 'HIGH' | 'DEGEN'>('MED');
+  const [logs, setLogs] = useState<string[]>([\'System initialized.\']);
+  const [activeTab, setActiveTab] = useState<\'chart\' | \'logs\' | \'ai\'>(\'chart\');
+  const [riskLevel, setRiskLevel] = useState<\'LOW\' | \'MED\' | \'HIGH\' | \'DEGEN\'>(\'MED\');
   const [volatility, setVolatility] = useState(12.5);
   const [showStrategiesModal, setShowStrategiesModal] = useState(false);
   const [strategies, setStrategies] = useState(null);
@@ -128,7 +128,7 @@ export default function App() {
 
   // Auth State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
+  const [walletAddress, setWalletAddress] = useState(\'\');
 
   // Live Data
   const [prices, setPrices] = useState<Record<string, number>>({ BTC: 0, ETH: 0, SOL: 0, XRP: 0, ADA: 0, AVAX: 0, LINK: 0, DOGE: 0 });
@@ -143,12 +143,12 @@ export default function App() {
   useEffect(() => {
     const fetchStrategies = async () => {
       try {
-        const res = await fetch('/api/strategies');
+        const res = await fetch(\'/api/strategies\');
         const data = await res.json();
         setStrategies(data);
       } catch (e) {
-        addLog('Failed to fetch strategies.');
-        console.error('Failed to fetch strategies', e);
+        addLog(\'Failed to fetch strategies.\');
+        console.error(\'Failed to fetch strategies\', e);
       }
     };
     fetchStrategies();
@@ -169,16 +169,16 @@ export default function App() {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const symbols = '["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","ADAUSDT","AVAXUSDT","LINKUSDT","DOGEUSDT"]';
+        const symbols = \'[\"BTCUSDT\",\"ETHUSDT\",\"SOLUSDT\",\"XRPUSDT\",\"ADAUSDT\",\"AVAXUSDT\",\"LINKUSDT\",\"DOGEUSDT\"]\';
         const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${symbols}`);
         const data: { symbol: string, price: string }[] = await res.json();
         const newPrices: Record<string, number> = {};
         data.forEach((item) => {
-          const symbol = item.symbol.replace('USDT', '');
+          const symbol = item.symbol.replace(\'USDT\', \'\');
           newPrices[symbol] = parseFloat(item.price);
         });
         setPrices(prev => ({ ...prev, ...newPrices }));
-      } catch (e) { console.error('Price fetch error', e); }
+      } catch (e) { console.error(\'Price fetch error\', e); }
     };
     fetchPrices();
     const interval = setInterval(fetchPrices, 5000);
@@ -190,12 +190,12 @@ export default function App() {
   }, []);
 
   const handleLogin = async (address: string) => {
-    addLog('Attempting to authenticate with backend...');
+    addLog(\'Attempting to authenticate with backend...\');
     try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address })
+      const res = await fetch(\'/api/auth\', {
+        method: \'POST\',
+        headers: { \'Content-Type\': \'application/json\' },
+        body: JSON.stringify({ address })\
       });
 
       if (!res.ok) {
@@ -206,7 +206,7 @@ export default function App() {
       }
 
       const data = await res.json();
-      addLog('Backend authentication successful. Updating state.');
+      addLog(\'Backend authentication successful. Updating state.\');
       
       // Update state atomically
       setBalance(data.user.balance);
@@ -215,7 +215,7 @@ export default function App() {
       setHouseLiquidity(data.houseTvl);
       setWalletAddress(address);
       setIsLoggedIn(true);
-      localStorage.setItem('walletAddress', address);
+      localStorage.setItem(\'walletAddress\', address);
 
     } catch (e: any) {
       console.error("Login process failed", e);
@@ -226,53 +226,52 @@ export default function App() {
     }
   };
   
-  // Auto-login on mount
-  useEffect(() => {
-    const storedAddress = localStorage.getItem('walletAddress');
-    if (storedAddress) {
-      addLog('Found stored address. Attempting to auto-login...');
-      handleLogin(storedAddress);
-    }
-  }, []);
+   useEffect(() => {
+     const storedAddress = localStorage.getItem(\'walletAddress\');
+     if (storedAddress) {
+       addLog(\'Found stored address. Attempting to auto-login...\');
+       handleLogin(storedAddress);
+     }
+   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('walletAddress');
+    localStorage.removeItem(\'walletAddress\');
     setIsLoggedIn(false);
-    setWalletAddress('');
-    addLog('Wallet disconnected.');
+    setWalletAddress(\'\');
+    addLog(\'Wallet disconnected.\');
   };
 
   const handleDeposit = async () => {
-    if (!isLoggedIn) return addLog('Connect wallet first.');
+    if (!isLoggedIn) return addLog(\'Connect wallet first.\');
     const amount = prompt("Enter amount to deposit (simulated):", "100");
     if (!amount || isNaN(Number(amount))) return;
     
     try {
-      const res = await fetch('/api/deposit', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress, amount: Number(amount) })
+      const res = await fetch(\'/api/deposit\', {
+        method: \'POST\', headers: { \'Content-Type\': \'application/json\' },
+        body: JSON.stringify({ address: walletAddress, amount: Number(amount) })\
       });
       const data = await res.json();
       setBalance(data.balance);
       setHouseLiquidity(data.houseTvl);
       addLog(`Deposited $${amount} successfully.`);
     } catch (e) {
-      addLog('Deposit failed.');
+      addLog(\'Deposit failed.\');
     }
   };
 
   const handleWithdraw = async () => {
-    if (!isLoggedIn) return addLog('Connect wallet first.');
-    if (balance <= 0) return addLog('No balance to withdraw.');
+    if (!isLoggedIn) return addLog(\'Connect wallet first.\');
+    if (balance <= 0) return addLog(\'No balance to withdraw.\');
     const amount = prompt(`Enter amount to withdraw (Max: $${balance}):`, balance.toString());
     if (!amount || isNaN(Number(amount)) || Number(amount) > balance) return;
 
     setIsWithdrawing(true);
     addLog(`Initiating withdrawal of $${amount}...`);
     try {
-      const res = await fetch('/api/withdraw', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress, amount: Number(amount) })
+      const res = await fetch(\'/api/withdraw\', {
+        method: \'POST\', headers: { \'Content-Type\': \'application/json\' },
+        body: JSON.stringify({ address: walletAddress, amount: Number(amount) })\
       });
       const data = await res.json();
       if (data.error) {
@@ -283,7 +282,7 @@ export default function App() {
         addLog(data.message);
       }
     } catch (e) {
-      addLog('Withdraw failed.');
+      addLog(\'Withdraw failed.\');
     } finally {
       setIsWithdrawing(false);
     }
@@ -294,12 +293,12 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [transcription, setTranscription] = useState<string>('');
+  const [transcription, setTranscription] = useState<string>(\'\');
   const sessionRef = useRef<any>(null);
 
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
-  const [editPrompt, setEditPrompt] = useState<string>('');
+  const [editPrompt, setEditPrompt] = useState<string>(\'\');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Memoize random trade data for visualization to prevent jumping on re-renders
@@ -307,7 +306,7 @@ export default function App() {
     return Array.from({ length: 40 }).map((_, i) => ({
       id: i,
       isBuy: Math.random() > 0.5,
-      token: ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'LINK', 'DOGE'][Math.floor(Math.random() * 8)],
+      token: [\'BTC\', \'ETH\', \'SOL\', \'XRP\', \'ADA\', \'AVAX\', \'LINK\', \'DOGE\'][Math.floor(Math.random() * 8)],
       price: (Math.random() * 60000).toFixed(Math.random() > 0.5 ? 2 : 6),
       size: (Math.random() * 10).toFixed(2),
       speed: 0.3 + Math.random() * 0.8,
@@ -333,18 +332,18 @@ export default function App() {
     if (!editingImage || !editPrompt) return alert("Upload photo & enter prompt!");
     setAiLoading(true);
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(\'/api/gemini\', {
+        method: \'POST\',
+        headers: { \'Content-Type\': \'application/json\' },
         body: JSON.stringify({
-          model: 'gemini-2.5-flash-image',
+          model: \'gemini-2.5-flash-image\',
           contents: {
             parts: [
-              { inlineData: { data: editingImage.split(',')[1], mimeType: 'image/png' } },
+              { inlineData: { data: editingImage.split(\',\')[1], mimeType: \'image/png\' } },
               { text: editPrompt },
             ],
           },
-        })
+        })\
       });
       const data = await res.json();
       for (const part of data.candidates?.[0]?.content?.parts || []) {
@@ -361,12 +360,12 @@ export default function App() {
   };
 
   const handleSpin = async () => {
-    if (!isLoggedIn) return addLog('ERROR: Connect Web3 wallet first.');
+    if (!isLoggedIn) return addLog(\'ERROR: Connect Web3 wallet first.\');
     if (spinning || winAmount > 0) return;
-    if (balance < bet && freeSpins === 0) return addLog('ERROR: Insufficient funds.');
-    if (!strategies) return addLog('ERROR: Strategies not loaded yet.');
+    if (balance < bet && freeSpins === 0) return addLog(\'ERROR: Insufficient funds.\');
+    if (!strategies) return addLog(\'ERROR: Strategies not loaded yet.\');
 
-    playSound('click');
+    playSound(\'click\');
     setSpinning(true);
     setWinAmount(0);
     setWinLines([]);
@@ -380,9 +379,9 @@ export default function App() {
     
     addLog(`[API] Routing trade to Backend...`);
     try {
-      const res = await fetch('/api/spin', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress, betAmount: bet, riskLevel })
+      const res = await fetch(\'/api/spin\', {
+        method: \'POST\', headers: { \'Content-Type\': \'application/json\' },
+        body: JSON.stringify({ address: walletAddress, betAmount: bet, riskLevel })\
       });
       const data = await res.json();
       if (data.error) {
@@ -398,7 +397,7 @@ export default function App() {
 
       // Animate Grid & Log Steps
       for (let i = 0; i < 10; i++) {
-        playSound('spin');
+        playSound(\'spin\');
         setGrid(generateGrid());
         if (i === 2) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 1 } : null);
@@ -427,20 +426,20 @@ export default function App() {
       setHouseLiquidity(houseTvl);
 
       if (scatters >= 3) {
-        playSound('freeSpinTrigger');
+        playSound(\'freeSpinTrigger\');
         addLog(`🎰 ${user.free_spins - freeSpins + 5} FREE SPINS TRIGGERED! 🎰`); // Calculate how many were added
       }
 
       // Process Result
       if (isWin) {
-        playSound('win');
+        playSound(\'win\');
         setWinLines([`${strategy.name} Successful`]);
         setWinningCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
         addLog(`[STEP 4] ${strategy.steps[3]} - SUCCESS!`);
         addLog(`[TX] ${strategy.name} closed in PROFIT! +$${user.win_amount.toFixed(2)}`);
         setChartData(prev => [...prev, { trade: tradeCount + 1, balance: user.balance + user.win_amount }]);
       } else {
-        playSound('lose');
+        playSound(\'lose\');
         setLosingCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
         addLog(`[STEP 4] ${strategy.steps[3]} - FAILED (Slippage/Outbid)`);
         addLog(`[TX] ${strategy.name} failed. Loss: -$${bet.toFixed(2)}`);
@@ -454,15 +453,15 @@ export default function App() {
     }
   };
 
-  const handleGamble = async (type: 'RED' | 'BLACK' | 'SUIT', suitId?: string) => {
+  const handleGamble = async (type: \'RED\' | \'BLACK\' | \'SUIT\', suitId?: string) => {
     if (winAmount <= 0) return;
-    playSound('click');
+    playSound(\'click\');
     const originalWinAmount = winAmount; // Store original win amount before gamble
     
     try {
-      const res = await fetch('/api/gamble', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress, type, suitId })
+      const res = await fetch(\'/api/gamble\', {
+        method: \'POST\', headers: { \'Content-Type\': \'application/json\' },
+        body: JSON.stringify({ address: walletAddress, type, suitId })\
       });
       const data = await res.json();
       if (data.error) return addLog(`ERROR: ${data.error}`);
@@ -474,15 +473,15 @@ export default function App() {
       setHouseLiquidity(houseTvl);
 
       if (won) {
-        playSound('gambleWin');
+        playSound(\'gambleWin\');
         setWinAmount(newWinAmount);
         addLog(`Gamble WON! New profit: $${newWinAmount.toFixed(2)}`);
         setGambleCard(null);
       } else {
-        playSound('gambleLose');
+        playSound(\'gambleLose\');
         setWinAmount(0);
         setGambleMode(false);
-        addLog('Gamble LOST. Position liquidated.');
+        addLog(\'Gamble LOST. Position liquidated.\');
         setGambleCard(null);
         setActiveTrade(null);
         setChartData(prev => {
@@ -502,11 +501,11 @@ export default function App() {
   };
 
   const collectWinnings = async () => {
-    playSound('click');
+    playSound(\'click\');
     try {
-      const res = await fetch('/api/collect', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress })
+      const res = await fetch(\'/api/collect\', {
+        method: \'POST\', headers: { \'Content-Type\': \'application/json\' },
+        body: JSON.stringify({ address: walletAddress })\
       });
       const data = await res.json();
       if (data.error) return addLog(`ERROR: ${data.error}`);
@@ -517,7 +516,7 @@ export default function App() {
       setActiveTrade(null);
       setWinLines([]);
       setWinningCells([]);
-      addLog('Profits secured to wallet.');
+      addLog(\'Profits secured to wallet.\');
     } catch (e) {
       addLog(`ERROR: Collect request failed.`);
     }
@@ -527,13 +526,13 @@ export default function App() {
   const runMarketAnalysis = async () => {
     setAiLoading(true); setAiResponse(null);
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(\'/api/gemini\', {
+        method: \'POST\',
+        headers: { \'Content-Type\': \'application/json\' },
         body: JSON.stringify({
           model: "gemini-3.1-pro-preview",
           contents: "Analyze the current high-frequency trading landscape for crypto. Provide a complex reasoning about arbitrage opportunities on decentralized exchanges vs centralized ones.",
-        })
+        })\
       });
       const data = await res.json();
       setAiResponse(data.text);
@@ -543,14 +542,14 @@ export default function App() {
   const getMarketNews = async () => {
     setAiLoading(true); setAiResponse(null);
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(\'/api/gemini\', {
+        method: \'POST\',
+        headers: { \'Content-Type\': \'application/json\' },
         body: JSON.stringify({
           model: "gemini-3-flash-preview",
           contents: "What are the top 3 crypto news stories in the last 24 hours? Focus on market-moving events.",
-          config: { tools: [{ googleSearch: {} }] }
-        })
+          config: { tools: [{ googleSearch: {} }] }\
+        })\
       });
       const data = await res.json();
       setAiResponse(data.text);
@@ -560,14 +559,14 @@ export default function App() {
   const generateLuckyToken = async () => {
     setAiLoading(true); setGeneratedImage(null);
     try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(\'/api/gemini\', {
+        method: \'POST\',
+        headers: { \'Content-Type\': \'application/json\' },
         body: JSON.stringify({
-          model: 'gemini-3-pro-image-preview',
-          contents: { parts: [{ text: 'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution' }] },
-          config: { imageConfig: { aspectRatio: "1:1", imageSize: "1K" } }
-        })
+          model: \'gemini-3-pro-image-preview\',
+          contents: { parts: [{ text: \'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution\' }] },
+          config: { imageConfig: { aspectRatio: "1:1", imageSize: "1K" } }\
+        })\
       });
       const data = await res.json();
       for (const part of data.candidates?.[0]?.content?.parts || []) {
@@ -616,7 +615,7 @@ export default function App() {
 
           {Object.entries(prices).map(([symbol, price]) => (
 
-            <span key={symbol}>{symbol} <span className="text-emerald-400">${(price as number) > 0 ? (price as number).toLocaleString(undefined, { minimumFractionDigits: (price as number) < 1 ? 4 : 2, maximumFractionDigits: (price as number) < 1 ? 4 : 2 }) : '---'}</span></span>
+            <span key={symbol}>{symbol} <span className="text-emerald-400">${(price as number) > 0 ? (price as number).toLocaleString(undefined, { minimumFractionDigits: (price as number) < 1 ? 4 : 2, maximumFractionDigits: (price as number) < 1 ? 4 : 2 }) : \'---\'}</span></span>
 
 
           ))}
@@ -711,7 +710,7 @@ export default function App() {
                 <button onClick={handleWithdraw} disabled={isWithdrawing} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
 
 
-                  {isWithdrawing ? '...' : 'Withdraw'}
+                  {isWithdrawing ? \'...\' : \'Withdraw\'}
 
 
                 </button>
@@ -771,7 +770,7 @@ export default function App() {
 
             {activeTrade && (
 
-              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${activeTrade.isWin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${activeTrade.isWin ? \'bg-emerald-500/20 text-emerald-400\' : \'bg-red-500/20 text-red-400\'}`}>
 
 
                 {activeTrade.name}
@@ -817,9 +816,9 @@ export default function App() {
 
                       key={trade.id}
 
-                      initial={{ y: '50vh', opacity: 0, scale: 0.8 }}
+                      initial={{ y: \'50vh\', opacity: 0, scale: 0.8 }}
 
-                      animate={{ y: '-50vh', opacity: [0, 0.6, 0], scale: 1 }}
+                      animate={{ y: \'-50vh\', opacity: [0, 0.6, 0], scale: 1 }}
 
                       transition={{ 
 
@@ -833,14 +832,14 @@ export default function App() {
 
                       }}
 
-                      className={`absolute text-[10px] font-mono whitespace-nowrap ${trade.isBuy ? 'text-emerald-500/40' : 'text-red-500/40'}`}
+                      className={`absolute text-[10px] font-mono whitespace-nowrap ${trade.isBuy ? \'text-emerald-500/40\' : \'text-red-500/40\'}`}
 
                       style={{ left: trade.left }}
 
                     >
 
 
-                      {trade.isBuy ? 'EXEC BUY' : 'EXEC SELL'} {trade.size} {trade.token} @ {trade.price}
+                      {trade.isBuy ? \'EXEC BUY\' : \'EXEC SELL\'} {trade.size} {trade.token} @ {trade.price}
 
 
                     </motion.div>
@@ -872,12 +871,11 @@ export default function App() {
                   <div key={`${i}-${j}`} className={`flex flex-col items-center justify-center rounded-lg border-2 shadow-inner relative overflow-hidden bg-zinc-950 transition-all duration-300
 
 
-                    ${isWinningCell ? 'border-emerald-500 shadow-[0_0_20px_rgba(52,211,153,0.5)] bg-emerald-500/10' : 
+                    ${isWinningCell ? \'border-emerald-500 shadow-[0_0_20px_rgba(52,211,153,0.5)] bg-emerald-500/10\' : 
 
-                      isLosingCell ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] bg-red-500/10' : 
+                      isLosingCell ? \'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] bg-red-500/10\' : 
 
-                      `${token.bg} ${token.border}`}`}>
-
+                      `${token.bg} ${token.border}`}`}>\n
 
 
                     <AnimatePresence mode="wait">
@@ -900,7 +898,7 @@ export default function App() {
                       >
 
 
-                        <div className={`text-2xl sm:text-3xl ${token.color} drop-shadow-[0_0_10px_currentColor] ${spinning ? 'blur-[1px]' : ''}`}>
+                        <div className={`text-2xl sm:text-3xl ${token.color} drop-shadow-[0_0_10px_currentColor] ${spinning ? \'blur-[1px]\' : \'\'}`}>
 
 
                           {token.symbol}
@@ -969,20 +967,20 @@ export default function App() {
                         className={`w-3 h-3 rounded-full border-2 flex items-center justify-center bg-zinc-950
 
 
-                          ${isFailure ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 
+                          ${isFailure ? \'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]\' : 
 
-                            isActive ? 'border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'border-zinc-700'}`}
+                            isActive ? \'border-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]\' : \'border-zinc-700\'}`}
 
 
                       >
 
 
-                        {isActive && <div className={`w-1 h-1 rounded-full ${isFailure ? 'bg-red-500' : 'bg-emerald-500'}`} />}
+                        {isActive && <div className={`w-1 h-1 rounded-full ${isFailure ? \'bg-red-500\' : \'bg-emerald-500\'}`} />}
 
                       </motion.div>
 
 
-                      <span className={`text-[7px] sm:text-[8px] font-mono text-center leading-tight ${isCurrent ? 'text-white font-bold' : isActive ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                      <span className={`text-[7px] sm:text-[8px] font-mono text-center leading-tight ${isCurrent ? \'text-white font-bold\' : isActive ? \'text-zinc-400\' : \'text-zinc-600\'}`}>
 
 
                         {step}
@@ -1038,7 +1036,7 @@ export default function App() {
 
                 initial={{ opacity: 0, height: 0 }} 
 
-                animate={{ opacity: 1, height: 'auto' }} 
+                animate={{ opacity: 1, height: \'auto\' }} 
 
                 exit={{ opacity: 0, height: 0 }}
 
@@ -1094,10 +1092,10 @@ export default function App() {
                     <div className="flex gap-1">
 
 
-                      <button onClick={() => handleGamble('RED')} disabled={!!gambleCard || houseLiquidity < winAmount} className="flex-1 py-1 bg-red-500 hover:bg-red-400 text-white font-bold rounded text-[9px] disabled:opacity-50" title={houseLiquidity < winAmount ? "Not enough House TVL" : ""}>RED (2x)</button>
+                      <button onClick={() => handleGamble(\'RED\')} disabled={!!gambleCard || houseLiquidity < winAmount} className="flex-1 py-1 bg-red-500 hover:bg-red-400 text-white font-bold rounded text-[9px] disabled:opacity-50" title={houseLiquidity < winAmount ? "Not enough House TVL" : ""}>RED (2x)</button>
 
 
-                      <button onClick={() => handleGamble('BLACK')} disabled={!!gambleCard || houseLiquidity < winAmount} className="flex-1 py-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded text-[9px] disabled:opacity-50" title={houseLiquidity < winAmount ? "Not enough House TVL" : ""}>BLACK (2x)</button>
+                      <button onClick={() => handleGamble(\'BLACK\')} disabled={!!gambleCard || houseLiquidity < winAmount} className="flex-1 py-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded text-[9px] disabled:opacity-50" title={houseLiquidity < winAmount ? "Not enough House TVL" : ""}>BLACK (2x)</button>
 
 
                     </div>
@@ -1108,7 +1106,7 @@ export default function App() {
 
                       {SUITS.map(s => (
 
-                        <button key={s.id} onClick={() => handleGamble('SUIT', s.id)} disabled={!!gambleCard || houseLiquidity < (winAmount * 3)} className="flex-1 py-1 bg-zinc-800 hover:bg-zinc-700 text-sm rounded flex justify-center disabled:opacity-50" title={houseLiquidity < (winAmount * 3) ? "Not enough House TVL" : ""}>
+                        <button key={s.id} onClick={() => handleGamble(\'SUIT\', s.id)} disabled={!!gambleCard || houseLiquidity < (winAmount * 3)} className="flex-1 py-1 bg-zinc-800 hover:bg-zinc-700 text-sm rounded flex justify-center disabled:opacity-50" title={houseLiquidity < (winAmount * 3) ? "Not enough House TVL" : ""}>
 
 
                           <span className={s.color}>{s.symbol}</span>
@@ -1183,7 +1181,7 @@ export default function App() {
               <div className="grid grid-cols-4 gap-1">
 
 
-                {['LOW', 'MED', 'HIGH', 'DEGEN'].map(r => (
+                {[\'LOW\', \'MED\', \'HIGH\', \'DEGEN\'].map(r => (
 
                   <button 
 
@@ -1193,7 +1191,7 @@ export default function App() {
 
                     disabled={spinning || gambleMode}
 
-                    className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${riskLevel === r ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'}`}
+                    className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${riskLevel === r ? \'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]\' : \'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300\'}`}
 
 
                   >
@@ -1230,7 +1228,7 @@ export default function App() {
 
                     onClick={() => setBet(amount)} disabled={spinning || gambleMode}
 
-                    className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
+                    className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? \'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]\' : \'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50\'}`}
 
 
                   >
@@ -1258,7 +1256,7 @@ export default function App() {
 
                     onClick={() => setBet(amount)} disabled={spinning || gambleMode}
 
-                    className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
+                    className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? \'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]\' : \'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50\'}`}
 
 
                   >
@@ -1333,11 +1331,11 @@ export default function App() {
 
                       whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(168,85,247,0.6)" }} whileTap={{ scale: 0.95 }}
 
-                      onClick={() => { playSound('click'); setGambleMode(true); }}
+                      onClick={() => { playSound(\'click\'); setGambleMode(true); }}
 
                       disabled={houseLiquidity < winAmount}
 
-                      className={`absolute -top-10 right-0 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400/50 flex items-center justify-center gap-1 z-10 ${houseLiquidity < winAmount ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                      className={`absolute -top-10 right-0 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400/50 flex items-center justify-center gap-1 z-10 ${houseLiquidity < winAmount ? \'opacity-50 cursor-not-allowed grayscale\' : \'\'}`}
 
 
                       title={houseLiquidity < winAmount ? "Not enough House TVL to gamble" : ""}
@@ -1373,7 +1371,7 @@ export default function App() {
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
 
 
-                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
+                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : \'EXECUTE\'}</>}\n
 
 
                 </motion.button>
@@ -1397,9 +1395,9 @@ export default function App() {
 
               <button 
 
-                onClick={() => setActiveTab('chart')}
+                onClick={() => setActiveTab(\'chart\')}
 
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'chart' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === \'chart\' ? \'bg-zinc-800 text-blue-400\' : \'text-zinc-500 hover:text-zinc-300\'}`}
 
 
               >
@@ -1413,9 +1411,9 @@ export default function App() {
 
               <button 
 
-                onClick={() => setActiveTab('logs')}
+                onClick={() => setActiveTab(\'logs\')}
 
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${activeTab === 'logs' ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${activeTab === \'logs\' ? \'bg-zinc-800 text-emerald-400\' : \'text-zinc-500 hover:text-zinc-300\'}`}
 
 
               >
@@ -1429,9 +1427,9 @@ export default function App() {
 
               <button 
 
-                onClick={() => setActiveTab('ai')}
+                onClick={() => setActiveTab(\'ai\')}
 
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'ai' ? 'bg-zinc-800 text-purple-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === \'ai\' ? \'bg-zinc-800 text-purple-400\' : \'text-zinc-500 hover:text-zinc-300\'}`}
 
 
               >
@@ -1449,7 +1447,7 @@ export default function App() {
             <div className="p-2 flex-1 overflow-y-auto min-h-0">
 
 
-              {activeTab === 'chart' ? (
+              {activeTab === \'chart\' ? (
 
                 <div className="h-full flex flex-col">
 
@@ -1463,10 +1461,10 @@ export default function App() {
                       <div className="text-[9px] text-zinc-500 font-mono">NET PNL</div>
 
 
-                      <div className={`text-sm font-bold font-mono ${balance >= 1000 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-sm font-bold font-mono ${balance >= 1000 ? \'text-emerald-400\' : \'text-red-400\'}`}>
 
 
-                        {balance >= 1000 ? '+' : '-'}${Math.abs(balance - 1000).toFixed(2)}
+                        {balance >= 1000 ? \'+\' : \'-\'}${Math.abs(balance - 1000).toFixed(2)}
 
 
                       </div>
@@ -1499,17 +1497,16 @@ export default function App() {
                       <LineChart data={chartData}>
 
 
-                        <YAxis domain={['auto', 'auto']} hide />
+                        <YAxis domain={[\'auto\', \'auto\']} hide />
 
 
                         <Tooltip 
 
-                          contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace', padding: '4px' }}
+                          contentStyle={{ backgroundColor: \'#18181b\', border: \'1px solid #27272a\', borderRadius: \'4px\', fontSize: \'10px\', fontFamily: \'monospace\', padding: \'4px\' }}
 
-                          itemStyle={{ color: '#34d399' }}
+                          itemStyle={{ color: \'#34d399\' }}
 
-                          formatter={(value: number) => [`$${value.toFixed(2)}`, 'Balance']}
-
+                          formatter={(value: number) => [`$${value.toFixed(2)}`, \'Balance\']}\n
                           labelFormatter={(label) => `Trade ${label}`}
 
                         />
@@ -1518,7 +1515,7 @@ export default function App() {
                         <ReferenceLine y={1000} stroke="#3f3f46" strokeDasharray="3 3" />
 
 
-                        <Line type="monotone" dataKey="balance" stroke={balance >= 1000 ? '#34d399' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={true} />
+                        <Line type="monotone" dataKey="balance" stroke={balance >= 1000 ? \'#34d399\' : \'#ef4444\'} strokeWidth={2} dot={false} isAnimationActive={true} />
 
 
                       </LineChart>
@@ -1533,14 +1530,14 @@ export default function App() {
                 </div>
 
 
-              ) : activeTab === 'logs' ? (
+              ) : activeTab === \'logs\' ? (
 
                 <div className="space-y-1 flex flex-col justify-end h-full font-mono text-[9px] sm:text-[10px]">
 
 
                   {logs.map((log, i) => (
 
-                    <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-1 ${log.includes('PROFIT') || log.includes('WON') ? 'text-emerald-400' : log.includes('Loss') || log.includes('LOST') || log.includes('failed') ? 'text-red-400' : log.includes('API') ? 'text-blue-400' : 'text-zinc-500'}`}>
+                    <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-1 ${log.includes(\'PROFIT\') || log.includes(\'WON\') ? \'text-emerald-400\' : log.includes(\'Loss\') || log.includes(\'LOST\') || log.includes(\'failed\') ? \'text-red-400\' : log.includes(\'API\') ? \'text-blue-400\' : \'text-zinc-500\'}`}>\n
 
 
                       <span className="shrink-0">{">"}</span>
@@ -1592,10 +1589,10 @@ export default function App() {
                     </button>
 
 
-                    <button onClick={toggleLiveAssistant} className={`p-1 border rounded text-[8px] font-bold flex flex-col items-center gap-0.5 transition-colors ${isLive ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-red-500/50'}`}>
+                    <button onClick={toggleLiveAssistant} className={`p-1 border rounded text-[8px] font-bold flex flex-col items-center gap-0.5 transition-colors ${isLive ? \'bg-red-500/20 border-red-500 text-red-400\' : \'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-red-500/50\'}`}>
 
 
-                      <Mic className={`w-3 h-3 ${isLive ? 'animate-pulse' : ''}`} /> {isLive ? 'STOP' : 'VOICE'}
+                      <Mic className={`w-3 h-3 ${isLive ? \'animate-pulse\' : \'\'}`} /> {isLive ? \'STOP\' : \'VOICE\'}\n
 
 
                     </button>
