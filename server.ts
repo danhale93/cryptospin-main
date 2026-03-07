@@ -177,7 +177,7 @@ app.post('/api/spin', (req, res) => {
     db.prepare(`
       INSERT INTO trade_history (user_address, bet_amount, risk_level, is_win, win_amount, strategy_name)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(address, betAmount, riskLevel, isWin, winAmount, strategy.name);
+    `).run(address, betAmount, riskLevel, isWin ? 1 : 0, winAmount, strategy.name);
 
     user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     const house = db.prepare('SELECT * FROM house').get();
