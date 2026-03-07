@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, BarChart2, Server, Database, X, Info } from 'lucide-react';
+import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, BarChart2, Server, Database, X, Info, Bot, RotateCw, Square } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import LoginPage from './LoginPage';
 
@@ -18,6 +18,7 @@ const TOKENS = [
 ];
 
 const BET_AMOUNTS = [0.5, 1, 2, 5, 10, 50, 100, 500, 1000];
+const AUTOSPIN_AMOUNTS = [5, 10, 25, 50, 100];
 const SUITS = [
   { id: 'HEART', symbol: '♥', color: 'text-red-500', type: 'RED' },
   { id: 'DIAMOND', symbol: '♦', color: 'text-red-500', type: 'RED' },
@@ -27,7 +28,6 @@ const SUITS = [
 
 const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() => TOKENS[Math.floor(Math.random() * TOKENS.length)]));
 
-// Integrated Reel-Based Frog Animation
 const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { result: 'win' | 'loss', onComplete: () => void, betAmount: number, winAmount: number }) => {
   const winText = `+$${winAmount.toFixed(2)}`;
   const lossText = `-$${betAmount.toFixed(2)}`;
@@ -39,7 +39,6 @@ const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { re
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-      {/* Frog */}
       <motion.div
         initial={{ x: "-220px", y: 0, rotate: 0, scale: 1.5 }}
         animate={{
@@ -48,18 +47,12 @@ const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { re
           rotate: result === 'win' ? [0, 20, 0] : [0, -10, 360],
           opacity: result === 'loss' ? [1, 1, 0] : 1,
         }}
-        transition={{
-          duration: 1.8,
-          ease: "easeInOut",
-          times: result === 'win' ? [0, 0.5, 1] : [0, 0.4, 1],
-          delay: 0.2,
-        }}
+        transition={{ duration: 1.8, ease: "easeInOut", times: result === 'win' ? [0, 0.5, 1] : [0, 0.4, 1], delay: 0.2 }}
         className="text-5xl z-10 filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
       >
         🐸
       </motion.div>
 
-      {/* Result Text & Effects */}
       <AnimatePresence>
         <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
@@ -77,7 +70,6 @@ const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { re
         </motion.div>
       </AnimatePresence>
 
-      {/* Winning Cells Path Glow */}
       {result === 'win' && (
         <motion.div 
           className="absolute w-full h-1/3 top-1/3 left-0 bg-emerald-500/30 filter blur-[30px]"
@@ -87,7 +79,6 @@ const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { re
         />
       )}
 
-      {/* Losing Cell Crack */}
       {result === 'loss' && (
          <motion.div 
             className="absolute w-1/5 h-1/3 top-1/3 left-2/5 border-2 border-red-500/80 rounded-lg bg-red-900/20"
@@ -100,6 +91,40 @@ const ReelResultAnimation = ({ result, onComplete, betAmount, winAmount } : { re
   );
 }
 
+const FreeSpinsBonus = ({ spins, onStart } : { spins: number, onStart: () => void }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, backdropFilter: 'blur(8px)' }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 z-50 flex flex-col items-center justify-center font-mono"
+    >
+      <motion.div
+        initial={{ scale: 0.5, rotate: -10 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: 'spring', duration: 0.5 }}
+        className="w-full max-w-lg bg-zinc-900 border-2 border-pink-500/80 rounded-2xl p-8 relative flex flex-col items-center justify-center shadow-[0_0_40px_rgba(217,70,239,0.4)] overflow-hidden"
+      >
+        <motion.div 
+          className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,rgba(217,70,239,0.2)_0%,transparent_60%)]"
+          animate={{ scale: [1, 1.5, 1], opacity: [0, 1, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <h2 className="text-xl text-zinc-400 tracking-widest">BONUS TRIGGERED</h2>
+        <h1 className="text-8xl font-black text-white my-2 bg-gradient-to-br from-pink-400 to-purple-500 bg-clip-text text-transparent">{spins}</h1>
+        <h2 className="text-3xl font-bold text-zinc-200">FREE SPINS</h2>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onStart}
+          className="mt-8 text-xl font-bold px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg text-white shadow-lg"
+        >
+          LET'S GO!
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  )
+}
 
 const playSound = (type: 'spin' | 'win' | 'lose' | 'click' | 'gambleWin' | 'gambleLose' | 'freeSpinTrigger') => {
   try {
@@ -192,7 +217,7 @@ export default function App() {
   const [freeSpins, setFreeSpins] = useState(0);
   const [gambleMode, setGambleMode] = useState(false);
   const [gambleCard, setGambleCard] = useState<typeof SUITS[0] | null>(null);
-  const [logs, setLogs] = useState<string[]>(['System initialized.']);
+  const [logs, setLogs] = useState<string[]>(["Welcome to CryptoSpin.ai! Set your bet and risk, then hit Execute."]);
   const [activeTab, setActiveTab] = useState<'chart' | 'logs' | 'ai'>('chart');
   const [riskLevel, setRiskLevel] = useState<'LOW' | 'MED' | 'HIGH' | 'DEGEN'>('MED');
   const [volatility, setVolatility] = useState(12.5);
@@ -212,6 +237,12 @@ export default function App() {
   const [tradeCount, setTradeCount] = useState(0);
   const [activeTrade, setActiveTrade] = useState<{ name: string, steps: string[], currentStep: number, isWin: boolean } | null>(null);
   const [tradeResultForAnimation, setTradeResultForAnimation] = useState<"win" | "loss" | null>(null);
+  
+  // New Animation/Feature States
+  const [showFreeSpinsBonus, setShowFreeSpinsBonus] = useState(false);
+  const [pendingFreeSpins, setPendingFreeSpins] = useState(0);
+  const [autoSpins, setAutoSpins] = useState(0);
+  const isStoppingRef = useRef(false);
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
 
@@ -230,11 +261,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (freeSpins > 0 && !spinning && !tradeResultForAnimation && winAmount === 0) {
-        const t = setTimeout(() => handleSpin(), 1500);
-        return () => clearTimeout(t);
+    if ((freeSpins > 0 || autoSpins > 0) && !spinning && !tradeResultForAnimation && winAmount === 0 && !gambleMode && !showFreeSpinsBonus) {
+        const timer = setTimeout(() => {
+            handleSpin();
+            if (autoSpins > 0) {
+              setAutoSpins(prev => prev - 1);
+            }
+        }, 1200);
+        return () => clearTimeout(timer);
     }
-  }, [freeSpins, spinning, winAmount, tradeResultForAnimation]);
+  }, [freeSpins, autoSpins, spinning, winAmount, tradeResultForAnimation, gambleMode, showFreeSpinsBonus]);
 
   useEffect(() => {
     const fetchPrices = async () => {
@@ -359,15 +395,9 @@ export default function App() {
     }
   };
 
-  // AI State
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isLive, setIsLive] = useState(false);
-  const [transcription, setTranscription] = useState<string>('');
-  const sessionRef = useRef<any>(null);
-
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -385,50 +415,6 @@ export default function App() {
     }));
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setEditingImage(ev.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const generateVeoVideo = async () => {
-    setAiResponse("Video generation is currently disabled.");
-  };
-
-  const editImageWithGemini = async () => {
-    if (!editingImage || !editPrompt) return alert("Upload photo & enter prompt!");
-    setAiLoading(true);
-    try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              { inlineData: { data: editingImage.split(',')[1], mimeType: 'image/png' } },
-              { text: editPrompt },
-            ],
-          },
-        })
-      });
-      const data = await res.json();
-      for (const part of data.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          setEditingImage(`data:image/png;base64,${part.inlineData.data}`);
-          break;
-        }
-      }
-    } catch (e) {
-      setAiResponse("Image editing failed.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   const handleAnimationComplete = () => {
     const result = tradeResultForAnimation;
     setTradeResultForAnimation(null);
@@ -444,17 +430,34 @@ export default function App() {
         const activeTradeName = activeTrade?.name || 'Trade';
         setLosingCells([{r:1, c:0}, {r:1, c:1}, {r:1, c:2}, {r:1, c:3}, {r:1, c:4}]);
         addLog(`[TX] ${activeTradeName} failed. Loss: -$${bet.toFixed(2)}`);
-        setTimeout(() => setActiveTrade(null), 2000);
+        setTimeout(() => {
+            setActiveTrade(null);
+            setGrid(generateGrid());
+            setLosingCells([]);
+        }, 2000);
+    }
+    
+    if (pendingFreeSpins > 0) {
+        setShowFreeSpinsBonus(true);
     }
   };
+
+  const handleStop = () => {
+      if(spinning) isStoppingRef.current = true;
+  }
 
   const handleSpin = async () => {
     if (!isLoggedIn) return addLog('ERROR: Connect Web3 wallet first.');
     if (spinning || winAmount > 0 || tradeResultForAnimation) return;
-    if (balance < bet && freeSpins === 0) return addLog('ERROR: Insufficient funds.');
+    if (balance < bet && freeSpins === 0) {
+        addLog('ERROR: Insufficient funds.');
+        setAutoSpins(0); // Stop autospins if out of money
+        return;
+    }
     if (!strategies) return addLog('ERROR: Strategies not loaded yet.');
 
     playSound('click');
+    isStoppingRef.current = false;
     setSpinning(true);
     setWinAmount(0);
     setWinLines([]);
@@ -465,6 +468,8 @@ export default function App() {
     
     if (freeSpins > 0) {
         addLog(`[FREE SPIN] ${freeSpins > 1 ? `${freeSpins} remaining...` : 'Last one!'}` );
+    } else if (autoSpins > 0) {
+        addLog(`[AUTOSPIN] ${autoSpins} remaining...`);
     }
     
     addLog(`[API] Routing trade to Backend...`);
@@ -486,20 +491,24 @@ export default function App() {
       setActiveTrade(currentTrade);
       addLog(`[API] Initiating ${strategy.name} at $${bet} (${riskLevel} Risk)...`);
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 15; i++) {
+        if (isStoppingRef.current) {
+            isStoppingRef.current = false;
+            break;
+        }
         playSound('spin');
         setGrid(generateGrid());
         if (i === 2) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 1 } : null);
           addLog(`[STEP 1] ${strategy.steps[0]} - Analyzing markets...`);
         }
-        if (i === 5) {
+        if (i === 6) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 2 } : null);
           const asset = TOKENS[Math.floor(Math.random() * (TOKENS.length - 1))];
           const price = prices[asset.id as keyof typeof prices] || (Math.random() * 1000).toFixed(2);
           addLog(`[STEP 2] ${strategy.steps[1]} - Target: ${asset.name} @ $${price}`);
         }
-        if (i === 8) {
+        if (i === 11) {
           setActiveTrade(prev => prev ? { ...prev, currentStep: 3 } : null);
           addLog(`[STEP 3] ${strategy.steps[2]} - Executing...`);
         }
@@ -519,7 +528,9 @@ export default function App() {
 
       if (scatters >= 3) {
         playSound('freeSpinTrigger');
-        addLog(`🎰 ${user.free_spins - freeSpins + 5} FREE SPINS TRIGGERED! 🎰`);
+        const spinsWon = user.free_spins - freeSpins + 5;
+        addLog(`🎰 ${spinsWon} FREE SPINS TRIGGERED! 🎰`);
+        setPendingFreeSpins(spinsWon);
       }
 
       if (isWin) {
@@ -528,8 +539,6 @@ export default function App() {
         setChartData(prev => [...prev, { trade: tradeCount + 1, balance: user.balance }]);
       }
       setTradeCount(c => c + 1);
-
-      // Trigger the new reel animation!
       setTradeResultForAnimation(isWin ? 'win' : 'loss');
 
     } catch (e) {
@@ -569,6 +578,8 @@ export default function App() {
         addLog('Gamble LOST. Position liquidated.');
         setGambleCard(null);
         setActiveTrade(null);
+        setGrid(generateGrid());
+        setLosingCells([]);
         setChartData(prev => {
           const newData = [...prev];
           const lastEntry = newData[newData.length - 1];
@@ -584,7 +595,7 @@ export default function App() {
   };
 
   const collectWinnings = async () => {
-    if (tradeResultForAnimation) return; // Cannot collect during animation
+    if (tradeResultForAnimation) return;
     playSound('click');
     try {
       const res = await fetch('/api/collect', {
@@ -600,67 +611,11 @@ export default function App() {
       setActiveTrade(null);
       setWinLines([]);
       setWinningCells([]);
+      setGrid(generateGrid());
       addLog('Profits secured to wallet.');
     } catch (e) {
       addLog(`ERROR: Collect request failed.`);
     }
-  };
-
-  // AI Features
-  const runMarketAnalysis = async () => {
-    setAiLoading(true); setAiResponse(null);
-    try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: "gemini-3.1-pro-preview",
-          contents: "Analyze the current high-frequency trading landscape for crypto. Provide a complex reasoning about arbitrage opportunities on decentralized exchanges vs centralized ones.",
-        })
-      });
-      const data = await res.json();
-      setAiResponse(data.text);
-    } catch (e) { setAiResponse("Analysis failed."); } finally { setAiLoading(false); }
-  };
-
-  const getMarketNews = async () => {
-    setAiLoading(true); setAiResponse(null);
-    try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: "gemini-3-flash-preview",
-          contents: "What are the top 3 crypto news stories in the last 24 hours? Focus on market-moving events.",
-          config: { tools: [{ googleSearch: {} }] }
-        })
-      });
-      const data = await res.json();
-      setAiResponse(data.text);
-    } catch (e) { setAiResponse("News fetch failed."); } finally { setAiLoading(false); }
-  };
-
-  const generateLuckyToken = async () => {
-    setAiLoading(true); setGeneratedImage(null);
-    try {
-      const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemini-3-pro-image-preview',
-          contents: { parts: [{ text: 'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution' }] },
-          config: { imageConfig: { aspectRatio: "1:1", imageSize: "1K" } }
-        })
-      });
-      const data = await res.json();
-      for (const part of data.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) { setGeneratedImage(`data:image/png;base64,${part.inlineData.data}`); break; }
-      }
-    } catch (e) { setAiResponse("Image generation failed."); } finally { setAiLoading(false); }
-  };
-
-  const toggleLiveAssistant = async () => {
-    setAiResponse("Live assistant is currently disabled.");
   };
   
   if (!isLoggedIn) {
@@ -670,142 +625,77 @@ export default function App() {
   return (
     <div className="h-[100dvh] bg-zinc-950 text-zinc-100 font-sans flex flex-col overflow-hidden text-sm">
 
-      {/* Live Price Ticker */}
+      <AnimatePresence>
+        {showFreeSpinsBonus && <FreeSpinsBonus spins={pendingFreeSpins} onStart={() => { setShowFreeSpinsBonus(false); setPendingFreeSpins(0); }} />}
+      </AnimatePresence>
 
       <div className="bg-[#050505] border-b border-zinc-800 py-1 px-2 flex justify-center shrink-0 overflow-hidden">
-
         <div className="flex gap-4 text-[9px] sm:text-[10px] font-mono text-zinc-500 whitespace-nowrap animate-[marquee_20s_linear_infinite]">
-
           <span className="flex items-center gap-1">
-
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
-
           </span>
-
           {Object.entries(prices).map(([symbol, price]) => (
-
             <span key={symbol}>{symbol} <span className="text-emerald-400">${(price as number) > 0 ? (price as number).toLocaleString(undefined, { minimumFractionDigits: (price as number) < 1 ? 4 : 2, maximumFractionDigits: (price as number) < 1 ? 4 : 2 }) : '---'}</span></span>
-
           ))}
-
         </div>
-
       </div>
 
-
-      {/* Header */}
-
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md z-40 shrink-0 h-12">
-
         <div className="max-w-7xl mx-auto px-2 h-full flex items-center justify-between">
-
           <div className="flex items-center gap-2">
-
             <div className="w-6 h-6 rounded-md bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)]">
-
               <Activity className="w-3 h-3 text-emerald-400" />
-
             </div>
-
             <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent hidden sm:block">
-
               CryptoSpin.ai
-
             </h1>
-
             <div className="hidden sm:flex items-center gap-1 ml-2 px-2 py-0.5 bg-zinc-800 rounded text-[9px] font-mono text-zinc-400">
-
-              <Database className="w-3 h-3 text-blue-400" /> Local API Connected
-
+              <Bot className="w-3 h-3 text-purple-400" /> Gemini API Connected
             </div>
-
           </div>
 
           <div className="flex items-center gap-4">
-
             <div className="hidden sm:flex flex-col items-end">
-
               <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">House TVL</span>
-
               <span className="text-xs font-mono font-bold text-purple-400">${houseLiquidity.toFixed(2)}</span>
-
             </div>
-
             <div className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-full shadow-inner">
-
               <Wallet className="w-3 h-3 text-zinc-500" />
-
               <span className="font-mono font-medium text-emerald-400 text-xs">${balance.toFixed(2)}</span>
-
             </div>
 
             {isLoggedIn ? (
-
               <div className="flex items-center gap-2">
-
-                <button onClick={handleDeposit} disabled={isWithdrawing || tradeResultForAnimation} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
-
+                <button onClick={handleDeposit} disabled={isWithdrawing || tradeResultForAnimation || spinning || autoSpins > 0} className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
                   Deposit
-
                 </button>
-
-                <button onClick={handleWithdraw} disabled={isWithdrawing || tradeResultForAnimation} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
-
+                <button onClick={handleWithdraw} disabled={isWithdrawing || tradeResultForAnimation || spinning || autoSpins > 0} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 text-[10px] font-mono font-medium px-2 py-1 rounded transition-colors disabled:opacity-50">
                   {isWithdrawing ? '...' : 'Withdraw'}
-
                 </button>
-
-                <button onClick={handleLogout} disabled={isWithdrawing || tradeResultForAnimation} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full disabled:opacity-50">
-
+                <button onClick={handleLogout} disabled={isWithdrawing || tradeResultForAnimation || spinning || autoSpins > 0} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full disabled:opacity-50">
                    {walletAddress.slice(0,6)}...{walletAddress.slice(-4)}
-
                 </button>
-
               </div>
-
             ) : ( <div /> )}
-
           </div>
-
         </div>
-
       </header>
 
-
-      {/* Main Game Area */}
-
       <main className="flex-1 max-w-7xl mx-auto w-full p-1 sm:p-2 flex flex-col lg:flex-row gap-1 sm:gap-2 min-h-0 overflow-hidden">
-
-        {/* Left: Execution Engine */}
-
         <div className="flex-1 flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 relative shadow-2xl overflow-hidden min-h-0">
-
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
-
           <div className="flex items-center justify-between mb-2 shrink-0">
-
             <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1">
-
               <Zap className="w-3 h-3 text-emerald-400" /> Engine
-
             </h2>
-
             {activeTrade && (
-
               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${activeTrade.isWin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-
                 {activeTrade.name}
-
               </span>
-
             )}
-
           </div>
 
-
           <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
-
-            {/* High-Frequency Trade Visualization Background */}
             <AnimatePresence>
               {spinning && (
                 <motion.div
@@ -820,12 +710,7 @@ export default function App() {
                       key={trade.id}
                       initial={{ y: '50vh', opacity: 0, scale: 0.8 }}
                       animate={{ y: '-50vh', opacity: [0, 0.6, 0], scale: 1 }}
-                      transition={{ 
-                        duration: trade.speed, 
-                        repeat: Infinity, 
-                        delay: trade.delay,
-                        ease: "linear" 
-                      }}
+                      transition={{ duration: trade.speed, repeat: Infinity, delay: trade.delay, ease: "linear" }}
                       className={`absolute text-[10px] font-mono whitespace-nowrap ${trade.isBuy ? 'text-emerald-500/40' : 'text-red-500/40'}`}
                       style={{ left: trade.left }}
                     >
@@ -836,10 +721,7 @@ export default function App() {
               )}
             </AnimatePresence>
 
-
-            {/* Grid & Animation Container */}
             <div className="relative grid grid-cols-5 gap-1 sm:gap-2 w-full max-w-[320px] sm:max-w-[420px] aspect-[5/3] mb-2 shrink-0 z-10">
-              
               <AnimatePresence>
                 {tradeResultForAnimation && 
                   <ReelResultAnimation 
@@ -865,7 +747,7 @@ export default function App() {
                         initial={spinning ? { y: -30, opacity: 0 } : { y: 10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={spinning ? { y: 30, opacity: 0 } : { opacity: 0 }}
-                        transition={spinning ? { repeat: Infinity, duration: 0.1, ease: "linear", delay: j * 0.05 } : { type: "spring", stiffness: 300, damping: 15 }}
+                        transition={spinning ? { repeat: Infinity, duration: 0.1, ease: "linear", delay: j * 0.05 + i * 0.02 } : { type: "spring", stiffness: 300, damping: 15 }}
                         className="flex flex-col items-center justify-center"
                       >
                         <div className={`text-2xl sm:text-3xl ${token.color} drop-shadow-[0_0_10px_currentColor] ${spinning ? 'blur-[1px]' : ''}`}>
@@ -881,8 +763,6 @@ export default function App() {
                 );
               }))}
             </div>
-
-            {/* Trade Workflow Visualization */}
 
             <div className="w-full max-w-[280px] bg-zinc-950 border border-zinc-800 rounded-lg p-2 shrink-0">
               <AnimatePresence mode="wait">
@@ -924,17 +804,10 @@ export default function App() {
                 </motion.div>
               </AnimatePresence>
             </div>
-
           </div>
-
         </div>
 
-        {/* Right: Controls & Dashboard */}
-
         <div className="w-full lg:w-72 flex flex-col gap-1 sm:gap-2 shrink-0 min-h-0">
-
-          {/* Gamble UI */}
-
           <AnimatePresence>
             {gambleMode && (
               <motion.div 
@@ -980,8 +853,6 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Controls */}
-
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-xl shrink-0">
             <div className="mb-1.5">
               <div className="flex justify-between items-center mb-0.5">
@@ -998,7 +869,7 @@ export default function App() {
                   <button 
                     key={r} 
                     onClick={() => setRiskLevel(r as any)} 
-                    disabled={spinning || gambleMode || tradeResultForAnimation}
+                    disabled={spinning || gambleMode || tradeResultForAnimation || autoSpins > 0}
                     className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${riskLevel === r ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'}`}
                   >
                     {r}
@@ -1013,7 +884,7 @@ export default function App() {
                 {BET_AMOUNTS.slice(0, 5).map((amount) => (
                   <motion.button
                     key={amount} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || tradeResultForAnimation}
+                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || tradeResultForAnimation || autoSpins > 0}
                     className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
                   >
                     ${amount < 1 ? amount.toFixed(2) : amount}
@@ -1024,7 +895,7 @@ export default function App() {
                 {BET_AMOUNTS.slice(5).map((amount) => (
                   <motion.button
                     key={amount} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || tradeResultForAnimation}
+                    onClick={() => setBet(amount)} disabled={spinning || gambleMode || tradeResultForAnimation || autoSpins > 0}
                     className={`py-1 rounded border font-mono text-[9px] transition-all ${bet === amount ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[inset_0_0_10px_rgba(52,211,153,0.2)]' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 disabled:opacity-50'}`}
                   >
                     ${amount}
@@ -1033,11 +904,11 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 relative">
+            <div className="flex items-stretch gap-2 relative">
               <motion.div
                 animate={spinning ? { y: [0, -10, 0], rotate: [0, 10, -10, 0] } : { y: [0, -3, 0] }}
                 transition={spinning ? { repeat: Infinity, duration: 0.4 } : { repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                className="text-xl sm:text-2xl filter drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                className="text-xl sm:text-2xl filter drop-shadow-[0_0_8px_rgba(34,197,94,0.5)] flex items-center pl-1"
               >
                 🐸
               </motion.div>
@@ -1048,7 +919,7 @@ export default function App() {
                     initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
                     onClick={collectWinnings}
-                    disabled={tradeResultForAnimation}
+                    disabled={tradeResultForAnimation || autoSpins > 0}
                     className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all flex items-center justify-center gap-1.5 relative overflow-hidden group disabled:opacity-50"
                   >
                     TAKE WIN (${winAmount.toFixed(2)})
@@ -1059,7 +930,7 @@ export default function App() {
                       initial={{ opacity: 0, scale: 0.5, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.5, y: 20 }}
                       whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(168,85,247,0.6)" }} whileTap={{ scale: 0.95 }}
                       onClick={() => { playSound('click'); setGambleMode(true); }}
-                      disabled={houseLiquidity < winAmount || tradeResultForAnimation}
+                      disabled={houseLiquidity < winAmount || tradeResultForAnimation || autoSpins > 0}
                       className={`absolute -top-10 right-0 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400/50 flex items-center justify-center gap-1 z-10 disabled:opacity-50 disabled:grayscale`}
                       title={houseLiquidity < winAmount ? "Not enough House TVL to gamble" : ""}
                     >
@@ -1068,51 +939,53 @@ export default function App() {
                   </AnimatePresence>
                 </>
               ) : (
-                <motion.button
-                  whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
-                  onClick={handleSpin} disabled={spinning || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn || tradeResultForAnimation}
-                  className="flex-1 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-1.5 relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
-                </motion.button>
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
+                    onClick={spinning ? handleStop : handleSpin} 
+                    disabled={(spinning && isStoppingRef.current) || (balance < bet && freeSpins === 0) || gambleMode || !isLoggedIn || tradeResultForAnimation || autoSpins > 0}
+                    className={`flex-1 py-2 rounded-lg bg-gradient-to-r text-zinc-950 font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-1.5 relative overflow-hidden group
+                        ${spinning ? 'from-amber-500 to-red-500' : 'from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400'}`}
+                  >
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                    {spinning ? <><Square className="w-4 h-4 fill-current"/>STOP</> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
+                  </motion.button>
+                  <motion.button
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => setAutoSpins(p => p > 0 ? 0 : 10)}
+                      disabled={spinning || gambleMode || tradeResultForAnimation || winAmount > 0 || freeSpins > 0}
+                      className={`w-12 py-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 disabled:grayscale flex flex-col items-center justify-center gap-0.5 group
+                          ${autoSpins > 0 ? '!bg-purple-600 !text-white !border-purple-500' : 'hover:border-zinc-500'}`}>
+                      {autoSpins > 0 ? <span className='text-sm'>{autoSpins}</span> : <><RotateCw className='w-3 h-3'/><span className='text-[10px]'>AUTO</span></>}
+                  </motion.button>
+                </>
               )}
             </div>
 
           </div>
 
-
-          {/* Dashboard Tabs */}
-
           <div className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl flex flex-col overflow-hidden shadow-xl min-h-0">
-
             <div className="bg-zinc-900/80 border-b border-zinc-800 px-1 py-1 flex items-center gap-1 shrink-0">
-
               <button 
                 onClick={() => setActiveTab('chart')}
                 className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'chart' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 <BarChart2 className="w-3 h-3" /> CHART
               </button>
-
               <button 
                 onClick={() => setActiveTab('logs')}
                 className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${activeTab === 'logs' ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 LOGS
               </button>
-
               <button 
                 onClick={() => setActiveTab('ai')}
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'ai' ? 'bg-zinc-800 text-purple-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
+                className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${activeTab === 'ai' ? 'bg-zinc-800 text-purple-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
                 <Sparkles className="w-3 h-3" /> DEGEN AI
               </button>
-
             </div>
 
             <div className="p-2 flex-1 overflow-y-auto min-h-0">
-
               {activeTab === 'chart' ? (
                 <div className="h-full flex flex-col">
                   <div className="flex justify-between items-end mb-1">
@@ -1139,7 +1012,7 @@ export default function App() {
                           labelFormatter={(label) => `Trade ${label}`}
                         />
                         <ReferenceLine y={1000} stroke="#3f3f46" strokeDasharray="3 3" />
-                        <Line type="monotone" dataKey="balance" stroke={balance >= 1000 ? '#34d399' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={true} />
+                        <Line type="monotone" dataKey="balance" stroke={balance >= 1000 ? '#34d399' : '#ef4444'} strokeWidth={2} dot={false} isAnimationActive={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -1147,79 +1020,16 @@ export default function App() {
               ) : activeTab === 'logs' ? (
                 <div className="space-y-1 flex flex-col justify-end h-full font-mono text-[9px] sm:text-[10px]">
                   {logs.map((log, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-1 ${log.includes('PROFIT') || log.includes('WON') ? 'text-emerald-400' : log.includes('Loss') || log.includes('LOST') || log.includes('failed') ? 'text-red-400' : log.includes('API') ? 'text-blue-400' : 'text-zinc-500'}`}>
+                    <motion.div key={i} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className={`flex gap-1 ${log.includes('PROFIT') || log.includes('WON') ? 'text-emerald-400' : log.includes('Loss') || log.includes('LOST') || log.includes('failed') || log.includes('RUGGED') ? 'text-red-400' : log.includes('API') || log.includes('STEP') ? 'text-blue-400' : 'text-zinc-500'}`}>
                       <span className="shrink-0">{'>'}</span>
                       <span className="break-all">{log}</span>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="space-y-2 h-full flex flex-col">
-                  <div className="grid grid-cols-3 gap-1 shrink-0">
-                    <button onClick={runMarketAnalysis} disabled={aiLoading} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-purple-500/50 transition-colors disabled:opacity-50">
-                      <Brain className="w-3 h-3 text-purple-400" /> ANALYZE
-                    </button>
-                    <button onClick={getMarketNews} disabled={aiLoading} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-emerald-500/50 transition-colors disabled:opacity-50">
-                      <Search className="w-3 h-3 text-emerald-400" /> NEWS
-                    </button>
-                    <button onClick={generateLuckyToken} disabled={aiLoading} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-cyan-500/50 transition-colors disabled:opacity-50">
-                      <ImageIcon className="w-3 h-3 text-cyan-400" /> TOKEN
-                    </button>
-                    <button onClick={toggleLiveAssistant} className={`p-1 border rounded text-[8px] font-bold flex flex-col items-center gap-0.5 transition-colors ${isLive ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-red-500/50'}`}>
-                      <Mic className={`w-3 h-3 ${isLive ? 'animate-pulse' : ''}`} /> {isLive ? 'STOP' : 'VOICE'}
-                    </button>
-                    <button onClick={() => fileInputRef.current?.click()} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-orange-500/50 transition-colors">
-                      <ImageIcon className="w-3 h-3 text-orange-400" /> UPLOAD
-                    </button>
-                    <button onClick={generateVeoVideo} disabled={aiLoading || !editingImage} className="p-1 bg-zinc-900 border border-zinc-800 rounded text-[8px] font-bold flex flex-col items-center gap-0.5 hover:border-pink-500/50 transition-colors disabled:opacity-50">
-                      <Sparkles className="w-3 h-3 text-pink-400" /> VEO
-                    </button>
+                 <div className="h-full flex items-center justify-center text-zinc-600 text-center italic">
+                    AI features are currently disabled.
                   </div>
-
-                  <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
-
-                  {editingImage && (
-                    <div className="flex gap-1 shrink-0">
-                      <input 
-                        type="text" value={editPrompt} onChange={(e) => setEditPrompt(e.target.value)} 
-                        placeholder="Edit prompt..." 
-                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-1.5 py-0.5 text-[9px] focus:outline-none focus:border-purple-500"
-                      />
-                      <button onClick={editImageWithGemini} disabled={aiLoading} className="bg-purple-500 hover:bg-purple-400 text-white px-2 py-0.5 rounded text-[9px] font-bold disabled:opacity-50">
-                        EDIT
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex-1 bg-zinc-950 rounded-lg border border-zinc-800 p-1.5 overflow-y-auto text-[9px] leading-relaxed relative min-h-0">
-                    {aiLoading && (
-                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10">
-                        <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                    {generatedVideo ? (
-                      <video src={generatedVideo} controls autoPlay loop className="w-full rounded border border-zinc-800" />
-                    ) : editingImage ? (
-                      <div className="space-y-1">
-                        <img src={editingImage} alt="Uploaded" className="w-full rounded border border-zinc-800" />
-                        <p className="text-center text-zinc-500 italic">Ready for Editing/Veo</p>
-                      </div>
-                    ) : generatedImage ? (
-                      <div className="space-y-1">
-                        <img src={generatedImage} alt="Generated Token" className="w-full rounded border border-zinc-800" />
-                        <p className="text-center text-zinc-500 italic">AI Lucky Token</p>
-                      </div>
-                    ) : aiResponse ? (
-                      <div className="whitespace-pre-wrap text-zinc-300 font-mono">{aiResponse}</div>
-                    ) : isLive ? (
-                      <div className="whitespace-pre-wrap text-emerald-400 font-mono italic">{transcription}</div>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-zinc-600 text-center italic">
-                        Select an AI tool.
-                      </div>
-                    )}
-                  </div>
-                </div>
               )}
             </div>
 
