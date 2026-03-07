@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, Play, Zap, Activity, Search, Image as ImageIcon, Mic, Brain, Sparkles, BarChart2, Server, Database, X, Info } from 'lucide-react';
-import { GoogleGenAI, ThinkingLevel, Modality } from "@google/genai";
-import { ethers } from 'ethers';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import LoginPage from './LoginPage';
 
@@ -141,16 +139,6 @@ export default function App() {
   const [activeTrade, setActiveTrade] = useState<{ name: string, steps: string[], currentStep: number, isWin: boolean } | null>(null);
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
-
-  // AI Client Initialization
-  const ai = useMemo(() => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      addLog("AI features disabled. Please set VITE_GEMINI_API_KEY in .env file.");
-      return null;
-    }
-    return new GoogleGenAI({ apiKey });
-  }, []);
 
   useEffect(() => {
     const fetchStrategies = async () => {
@@ -338,49 +326,28 @@ export default function App() {
   };
 
   const generateVeoVideo = async () => {
-    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
-    if (!editingImage) return alert("Upload a photo first!");
-    setAiLoading(true);
-    setGeneratedVideo(null);
-    try {
-      let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt: 'Animate this crypto token with cinematic lighting and motion',
-        image: { imageBytes: editingImage.split(',')[1], mimeType: 'image/png' },
-        config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
-      });
-      while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        operation = await ai.operations.getVideosOperation({ name: operation.name });
-      }
-      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (!downloadLink) throw new Error("No video generated");
-      const response = await fetch(downloadLink, { headers: { 'x-goog-api-key': import.meta.env.VITE_GEMINI_API_KEY! } });
-      const blob = await response.blob();
-      setGeneratedVideo(URL.createObjectURL(blob));
-    } catch (e) {
-      setAiResponse("Video generation failed.");
-      console.error(e)
-    } finally {
-      setAiLoading(false);
-    }
+    setAiResponse("Video generation is currently disabled.");
   };
 
   const editImageWithGemini = async () => {
-    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     if (!editingImage || !editPrompt) return alert("Upload photo & enter prompt!");
     setAiLoading(true);
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [
-            { inlineData: { data: editingImage.split(',')[1], mimeType: 'image/png' } },
-            { text: editPrompt },
-          ],
-        },
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              { inlineData: { data: editingImage.split(',')[1], mimeType: 'image/png' } },
+              { text: editPrompt },
+            ],
+          },
+        })
       });
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
+      const data = await res.json();
+      for (const part of data.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           setEditingImage(`data:image/png;base64,${part.inlineData.data}`);
           break;
@@ -558,63 +525,59 @@ export default function App() {
 
   // AI Features
   const runMarketAnalysis = async () => {
-    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     setAiLoading(true); setAiResponse(null);
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
-        contents: "Analyze the current high-frequency trading landscape for crypto. Provide a complex reasoning about arbitrage opportunities on decentralized exchanges vs centralized ones.",
-        config: { thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH } }
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-3.1-pro-preview",
+          contents: "Analyze the current high-frequency trading landscape for crypto. Provide a complex reasoning about arbitrage opportunities on decentralized exchanges vs centralized ones.",
+        })
       });
-      setAiResponse(response.text);
+      const data = await res.json();
+      setAiResponse(data.text);
     } catch (e) { setAiResponse("Analysis failed."); } finally { setAiLoading(false); }
   };
 
   const getMarketNews = async () => {
-    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     setAiLoading(true); setAiResponse(null);
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: "What are the top 3 crypto news stories in the last 24 hours? Focus on market-moving events.",
-        config: { tools: [{ googleSearch: {} }] }
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-3-flash-preview",
+          contents: "What are the top 3 crypto news stories in the last 24 hours? Focus on market-moving events.",
+          config: { tools: [{ googleSearch: {} }] }
+        })
       });
-      setAiResponse(response.text);
+      const data = await res.json();
+      setAiResponse(data.text);
     } catch (e) { setAiResponse("News fetch failed."); } finally { setAiLoading(false); }
   };
 
   const generateLuckyToken = async () => {
-    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
     setAiLoading(true); setGeneratedImage(null);
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: { parts: [{ text: 'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution' }] },
-        config: { imageConfig: { aspectRatio: "1:1", imageSize: "1K" } }
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-3-pro-image-preview',
+          contents: { parts: [{ text: 'A futuristic, glowing 3D crypto token with a frog face, cyberpunk style, neon green and purple lighting, 8k resolution' }] },
+          config: { imageConfig: { aspectRatio: "1:1", imageSize: "1K" } }
+        })
       });
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
+      const data = await res.json();
+      for (const part of data.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) { setGeneratedImage(`data:image/png;base64,${part.inlineData.data}`); break; }
       }
     } catch (e) { setAiResponse("Image generation failed."); } finally { setAiLoading(false); }
   };
 
   const toggleLiveAssistant = async () => {
-    if (!ai) return setAiResponse("AI client not initialized. Check API key.");
-    if (isLive) { sessionRef.current?.close(); setIsLive(false); return; }
-    setIsLive(true); setTranscription('Connecting to Live Degen Assistant...');
-    try {
-      const session = await ai.live.connect({
-        model: "gemini-2.5-flash-native-audio-preview-09-2025",
-        callbacks: {
-          onopen: () => setTranscription('Live! Speak to the Degen Assistant.'),
-          onmessage: (msg) => { if (msg.serverContent?.modelTurn?.parts?.[0]?.text) setTranscription(prev => prev + '\n' + msg.serverContent?.modelTurn?.parts[0].text); },
-          onclose: () => setIsLive(false),
-          onerror: () => setIsLive(false)
-        },
-        config: { responseModalities: [Modality.AUDIO], systemInstruction: "You are a degenerate crypto trading assistant. You are hype, use slang like 'wagmi', 'ngmi', 'to the moon'. You give advice on 'shilling' and 'aping in'. Be funny and high energy." }
-      });
-      sessionRef.current = session;
-    } catch (e) { setIsLive(false); }
+    setAiResponse("Live assistant is currently disabled.");
   };
   
   if (!isLoggedIn) {
@@ -914,6 +877,7 @@ export default function App() {
                       isLosingCell ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] bg-red-500/10' : 
 
                       `${token.bg} ${token.border}`}`}>
+
 
 
                     <AnimatePresence mode="wait">
@@ -1409,7 +1373,7 @@ export default function App() {
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
 
 
-                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}'''
+                  {spinning ? <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" />{freeSpins > 0 ? `FREE SPIN (${freeSpins})` : 'EXECUTE'}</>}
 
 
                 </motion.button>
