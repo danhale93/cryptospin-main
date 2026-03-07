@@ -17,7 +17,7 @@ interface EIP6963ProviderDetail {
 type EIP6963AnnounceProviderEvent = CustomEvent<EIP6963ProviderDetail>;
 
 interface LoginPageProps {
-  onLogin: (address: string, isGoogle?: boolean) => void;
+  onLogin: (address: string) => void;
   addLog: (msg: string) => void;
 }
 
@@ -59,15 +59,6 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
     }
   };
 
-  const handleGoogleLogin = () => {
-    addLog("Simulating Google login...");
-    // In a real app, this would involve a full OAuth 2.0 flow.
-    // Here, we'll generate a random wallet to simulate a new user.
-    const randomWallet = ethers.Wallet.createRandom();
-    addLog(`Created temporary wallet for Google user: ${randomWallet.address.slice(0,6)}...${randomWallet.address.slice(-4)}`);
-    onLogin(randomWallet.address, true);
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-white">
       <div className="w-full max-w-md p-8 space-y-8 bg-zinc-900 rounded-xl shadow-lg border border-zinc-800">
@@ -78,24 +69,6 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
           <p className="mt-2 text-sm text-zinc-400">
             Connect your wallet to start playing.
           </p>
-        </div>
-
-        <div className="flex flex-col space-y-2">
-            <button
-                onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-red-600/80 rounded-lg hover:bg-red-500/80 transition-colors"
-            >
-                <span className="text-lg font-semibold">Sign in with Google</span>
-            </button>
-        </div>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-zinc-700" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-zinc-900 text-zinc-500">OR</span>
-          </div>
         </div>
 
         <div className="flex flex-col space-y-4">
