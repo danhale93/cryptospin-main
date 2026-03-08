@@ -59,11 +59,29 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
     }
   };
 
-  const handleTempWallet = () => {
+  const handleTempWallet = async () => {
     addLog("Creating a temporary wallet for development...");
     const randomWallet = ethers.Wallet.createRandom();
-    addLog(`Created temporary wallet: ${randomWallet.address.slice(0,6)}...${randomWallet.address.slice(-4)}`);
-    onLogin(randomWallet.address);
+    const address = randomWallet.address;
+    addLog(`Created temporary wallet: ${address.slice(0,6)}...${address.slice(-4)}`);
+
+    try {
+        const response = await fetch('/api/auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ address }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to authenticate with temporary wallet');
+        }
+        const { user } = await response.json();
+        onLogin(user.address);
+    } catch (error) {
+        console.error(error);
+        addLog('Temporary wallet login failed.');
+    }
   };
 
   return (
