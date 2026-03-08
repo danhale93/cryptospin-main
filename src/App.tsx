@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, Play, Zap, Activity, Bot, RotateCw, Square, Info, BarChart2 } from 'lucide-react';
+import { Wallet, Play, Zap, Activity, Bot, RotateCw, Square, Info, BarChart2, PlusCircle } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import LoginPage from './LoginPage';
+import PayIDModal from './PayIDModal';
 
 // --- NEW COMPONENT: TradeStreamColumn ---
 const TradeStreamColumn = ({ delay, isFast } : { delay: number, isFast: boolean }) => {
@@ -182,6 +183,7 @@ export default function App() {
   const [autoSpins, setAutoSpins] = useState(0);
   const isStoppingRef = useRef(false);
   const spinStartTime = useRef(0);
+  const [showPayIDModal, setShowPayIDModal] = useState(false);
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
 
@@ -345,17 +347,37 @@ export default function App() {
     } catch (e) { addLog(`ERROR: Collect request failed.`); }
   };
   
+  const handleDeposit = async (amount: number) => {
+    try {
+        const res = await fetch('/api/deposit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: walletAddress, amount }),
+        });
+        const data = await res.json();
+        if (data.error) {
+            addLog(`ERROR: ${data.error}`);
+        } else {
+            setBalance(data.balance);
+            addLog(`[API] Deposit of $${amount} successful. New balance: $${data.balance.toFixed(2)}`);
+        }
+    } catch (e) {
+        addLog('ERROR: Deposit request failed.');
+    }
+  };
+
   if (!isLoggedIn) return <LoginPage onLogin={handleLogin} addLog={addLog} />;
 
   return (
     <div className="h-[100dvh] bg-zinc-950 text-zinc-100 font-sans flex flex-col overflow-hidden text-sm">
 
+      <AnimatePresence>{showPayIDModal && <PayIDModal onClose={() => setShowPayIDModal(false)} onDeposit={handleDeposit} addLog={addLog} />}</AnimatePresence>
       <AnimatePresence>{showFreeSpinsBonus && <FreeSpinsBonus spins={pendingFreeSpins} onStart={() => { setShowFreeSpinsBonus(false); setPendingFreeSpins(0); }} />}</AnimatePresence>
 
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md z-30 shrink-0 h-12 flex items-center">
         <div className="max-w-7xl mx-auto px-2 w-full flex items-center justify-between">
           <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.2)]"><Activity className="w-3 h-3 text-emerald-400" /></div><h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent hidden sm:block">CryptoSpin.ai</h1></div>
-          <div className="flex items-center gap-4"><div className="hidden sm:flex flex-col items-end"><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">House TVL</span><span className="text-xs font-mono font-bold text-purple-400">${houseLiquidity.toFixed(2)}</span></div><div className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-full shadow-inner"><Wallet className="w-3 h-3 text-zinc-500" /><span className="font-mono font-medium text-emerald-400 text-xs">${balance.toFixed(2)}</span></div>
+          <div className="flex items-center gap-4"><div className="hidden sm:flex flex-col items-end"><span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">House TVL</span><span className="text-xs font-mono font-bold text-purple-400">${houseLiquidity.toFixed(2)}</span></div><div className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-full shadow-inner"><Wallet className="w-3 h-3 text-zinc-500" /><span className="font-mono font-medium text-emerald-400 text-xs">${balance.toFixed(2)}</span><button onClick={() => setShowPayIDModal(true)} className="ml-1"><PlusCircle className="w-3.5 h-3.5 text-zinc-600 hover:text-emerald-400 transition-colors" /></button></div>
             {isLoggedIn && (<div className="flex items-center gap-2"><button onClick={handleLogout} disabled={isWithdrawing || tradeResultForAnimation || spinning || autoSpins > 0} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 border border-zinc-700 text-[10px] font-mono font-medium px-2 py-1 rounded-full disabled:opacity-50">{walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</button></div>)}
           </div>
         </div>
