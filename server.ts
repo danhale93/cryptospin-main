@@ -12,6 +12,28 @@ const genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY || '');
 const db = new Database('crypto_casino.db');
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    address TEXT PRIMARY KEY,
+    balance REAL NOT NULL DEFAULT 1000,
+    win_amount REAL NOT NULL DEFAULT 0,
+    free_spins INTEGER NOT NULL DEFAULT 0,
+    free_spin_bet_amount REAL NOT NULL DEFAULT 0
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS house (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tvl REAL NOT NULL DEFAULT 100000
+  );
+`);
+
+const houseExists = db.prepare('SELECT COUNT(*) as count FROM house').get() as { count: number };
+if (houseExists.count === 0) {
+    db.prepare('INSERT INTO house (tvl) VALUES (?)').run(100000);
+}
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS trade_history (
     trade_id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_address TEXT,
@@ -84,8 +106,8 @@ app.post('/api/auth', (req, res) => {
     const { address } = req.body;
     let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     if (!user) {
-        db.prepare('INSERT INTO users (address, balance, win_amount, free_spins) VALUES (?, ?, ?, ?)')
-          .run(address, 1000, 0, 0);
+        db.prepare('INSERT INTO users (address, balance, win_amount, free_spins, free_spin_bet_amount) VALUES (?, ?, ?, ?, ?)')
+          .run(address, 1000, 0, 0, 0);
         user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     }
     const house = db.prepare('SELECT * FROM house').get();
@@ -153,8 +175,10 @@ app.post('/api/spin', (req, res) => {
         return res.status(400).json({ error: "Insufficient funds" });
     }
     
+    const hadFreeSpinsBefore = user.free_spins > 0;
     let isFreeSpin = false;
-    if (user.free_spins > 0) {
+
+    if (hadFreeSpinsBefore) {
         db.prepare('UPDATE users SET free_spins = free_spins - 1 WHERE address = ?').run(address);
         isFreeSpin = true;
     } else {
@@ -165,7 +189,14 @@ app.post('/api/spin', (req, res) => {
     const scatters = finalGrid.flat().filter(t => t.id === 'SCATTER').length;
 
     if (scatters >= 3) {
-        db.prepare('UPDATE users SET free_spins = free_spins + 5 WHERE address = ?').run(address);
+        const betForNewFreeSpins = hadFreeSpinsBefore ? user.free_spin_bet_amount : betAmount;
+        if (!hadFreeSpinsBefore) {
+             db.prepare('UPDATE users SET free_spins = free_spins + 5, free_spin_bet_amount = ? WHERE address = ?')
+               .run(betForNewFreeSpins, address);
+        } else {
+             db.prepare('UPDATE users SET free_spins = free_spins + 5 WHERE address = ?')
+               .run(address);
+        }
     }
 
     const riskStrategies = STRATEGIES[riskLevel as keyof typeof STRATEGIES];
@@ -178,7 +209,7 @@ app.post('/api/spin', (req, res) => {
         const line = finalGrid[1];
         const winMultiplier = line.reduce((acc, token) => acc + token.mult, 0);
         if (isFreeSpin) {
-            winAmount = winMultiplier;
+            winAmount = user.free_spin_bet_amount * winMultiplier;
             db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(winAmount, address);
         } else {
             winAmount = betAmount * winMultiplier;
@@ -191,7 +222,7 @@ app.post('/api/spin', (req, res) => {
     db.prepare(`
       INSERT INTO trade_history (user_address, bet_amount, risk_level, is_win, win_amount, strategy_name)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(address, betAmount, riskLevel, isWin ? 1 : 0, winAmount, strategy.name);
+    `).run(address, isFreeSpin ? 0 : betAmount, riskLevel, isWin ? 1 : 0, winAmount, strategy.name);
 
     user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     const house = db.prepare('SELECT * FROM house').get();
