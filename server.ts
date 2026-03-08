@@ -126,6 +126,20 @@ app.post('/api/withdraw', (req, res) => {
 
 const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() => TOKENS[Math.floor(Math.random() * TOKENS.length)]));
 
+app.post('/api/set-reels', (req, res) => {
+    const { reels } = req.body;
+    // reels should be a 3x5 array of token IDs
+    const finalGrid = reels.map(row => row.map(tokenId => TOKENS.find(t => t.id === tokenId)));
+    res.json({ finalGrid });
+});
+
+app.post('/api/add-funds', (req, res) => {
+    const { address, amount } = req.body;
+    db.prepare('UPDATE users SET balance = balance + ? WHERE address = ?').run(amount, address);
+    const user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    res.json({ balance: user.balance });
+});
+
 app.post('/api/spin', (req, res) => {
     const { address, betAmount, riskLevel } = req.body;
 
