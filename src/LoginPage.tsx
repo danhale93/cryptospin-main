@@ -1,22 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ethers } from 'ethers';
-import { createWeb3Modal, useWeb3Modal } from '@web3modal/ethers/react'
-
-
-// EIP-6963 types
-interface EIP6963ProviderInfo {
-  uuid: string;
-  name: string;
-  icon: string;
-  rdns: string;
-}
-
-interface EIP6963ProviderDetail {
-  info: EIP6963ProviderInfo;
-  provider: any; // EIP-1193 provider
-}
-
-type EIP6963AnnounceProviderEvent = CustomEvent<EIP6963ProviderDetail>;
+import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount } from '@web3modal/ethers/react'
 
 interface LoginPageProps {
   onLogin: (address: string) => void;
@@ -25,7 +9,6 @@ interface LoginPageProps {
 
 const projectId = '6ddf763974f1ef900e5d30cfd8e339c8'
 
-// 2. Set chains
 const mainnet = {
   chainId: 1,
   name: 'Ethereum',
@@ -34,60 +17,39 @@ const mainnet = {
   rpcUrl: 'https://cloudflare-eth.com'
 }
 
-// 3. Create modal
 const metadata = {
-  name: 'My Website',
-  description: 'My Website description',
-  url: 'https://mywebsite.com',
+  name: 'CryptoSpin.ai',
+  description: 'CryptoSpin.ai - A decentralized gaming experience',
+  url: 'https://cryptospin.ai',
   icons: ['https://avatars.mywebsite.com/public/a0c201f9-f153-4b53-933e-635532b6951b.png']
 }
 
+const ethersConfig = defaultConfig({
+  metadata,
+  enableEIP6963: true,
+  enableInjected: true,
+  enableCoinbase: true,
+})
+
 createWeb3Modal({
-  ethersConfig: {},
+  ethersConfig,
   chains: [mainnet],
   projectId,
-  enableAnalytics: true // Optional - defaults to your Cloud configuration
+  enableAnalytics: true
 })
 
 export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
-  const [providers, setProviders] = useState<EIP6963ProviderDetail[]>([]);
-    const { open } = useWeb3Modal()
+  const { open } = useWeb3Modal()
+  const { address, isConnected } = useWeb3ModalAccount()
 
-
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    function onAnnounceProvider(event: EIP6963AnnounceProviderEvent) {
-      setProviders(p => {
-        if (p.some(existing => existing.info.uuid === event.detail.info.uuid)) return p;
-        return [...p, event.detail];
-      });
-    }
-    window.addEventListener("eip6963:announceProvider", onAnnounceProvider as EventListener);
-    window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-    return () => {
-      window.removeEventListener("eip6963:announceProvider", onAnnounceProvider as EventListener);
-    };
-  }, []);
-
-  const connectWallet = async (providerDetail: EIP6963ProviderDetail) => {
-    try {
-      const provider = new ethers.BrowserProvider(providerDetail.provider);
-      const accounts = await provider.send("eth_requestAccounts", []);
-      if (!accounts || accounts.length === 0) {
-        addLog('Wallet connection failed: No accounts returned.');
-        return;
-      }
-      const address = accounts[0];
-      addLog(`Wallet connected: ${providerDetail.info.name} - ${address.slice(0,6)}...${address.slice(-4)}`);
+    if (isConnected && address) {
+      addLog(`Wallet connected: ${address.slice(0,6)}...${address.slice(-4)}`);
       onLogin(address);
-    } catch (e: any) {
-      console.error("Wallet connection process failed", e);
-      addLog("Wallet connection process failed.");
-      if (e.message) {
-        addLog(`Error details: ${e.message}`);
-      }
     }
-  };
+  }, [isConnected, address, onLogin, addLog]);
+
 
   const handleTempWallet = async () => {
     addLog("Creating a temporary wallet for development...");
@@ -127,26 +89,13 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
         </div>
 
         <div className="flex flex-col space-y-4">
-          {providers.length > 0 ? (
-            <>
-              <p className="text-center text-sm text-zinc-400">Connect with a browser wallet:</p>
-              {providers.map((p) => (
-                <button
-                  key={p.info.uuid}
-                  onClick={() => connectWallet(p)}
-                  className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors"
-                >
-                  <img src={p.info.icon} alt={p.info.name} className="w-8 h-8 rounded-full" />
-                  <span className="text-lg font-semibold">{p.info.name}</span>
-                </button>
-              ))}
-            </>
-          ) : (
-            <div className="text-center text-zinc-500 font-mono p-4 bg-zinc-950 rounded-lg border border-dashed border-zinc-700">
-              <p className='text-yellow-400/80'>No browser wallet extensions found.</p>
-              <p className="text-xs mt-2 text-zinc-600">This is expected inside the IDE. Use a temporary wallet to continue.</p>
-            </div>
-          )}
+            <button
+                onClick={() => open()}
+                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-blue-600/80 rounded-lg hover:bg-blue-500/80 transition-colors"
+            >
+                <span className="text-lg font-semibold">Connect Wallet</span>
+            </button>
+             <p className="text-xs text-center text-zinc-500">Use browser extension or WalletConnect</p>
         </div>
 
         <div className="relative">
@@ -166,10 +115,6 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
                 <span className="text-lg font-semibold">Use a Temporary Wallet</span>
             </button>
             <p className="text-xs text-center text-zinc-500">For testing and development purposes.</p>
-
-            <button onClick={() => open()} className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors">
-                 <span className="text-lg font-semibold">Connect with WalletConnect</span>
-            </button>
         </div>
       </div>
     </div>
