@@ -4,9 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    include: ['@tailwindcss/vite'],
+  },
   plugins: [
     react(),
-    tailwindcss()
+    tailwindcss(),
   ],
   server: {
     host: '0.0.0.0',
