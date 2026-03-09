@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { createWeb3Modal, useWeb3Modal } from '@web3modal/ethers/react'
+
 
 // EIP-6963 types
 interface EIP6963ProviderInfo {
@@ -21,8 +23,36 @@ interface LoginPageProps {
   addLog: (msg: string) => void;
 }
 
+const projectId = '6ddf763974f1ef900e5d30cfd8e339c8'
+
+// 2. Set chains
+const mainnet = {
+  chainId: 1,
+  name: 'Ethereum',
+  currency: 'ETH',
+  explorerUrl: 'https://etherscan.io',
+  rpcUrl: 'https://cloudflare-eth.com'
+}
+
+// 3. Create modal
+const metadata = {
+  name: 'My Website',
+  description: 'My Website description',
+  url: 'https://mywebsite.com',
+  icons: ['https://avatars.mywebsite.com/public/a0c201f9-f153-4b53-933e-635532b6951b.png']
+}
+
+createWeb3Modal({
+  ethersConfig: {},
+  chains: [mainnet],
+  projectId,
+  enableAnalytics: true // Optional - defaults to your Cloud configuration
+})
+
 export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
   const [providers, setProviders] = useState<EIP6963ProviderDetail[]>([]);
+    const { open } = useWeb3Modal()
+
 
   useEffect(() => {
     function onAnnounceProvider(event: EIP6963AnnounceProviderEvent) {
@@ -131,6 +161,9 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
                 className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-purple-600/80 rounded-lg hover:bg-purple-500/80 transition-colors"
             >
                 <span className="text-lg font-semibold">Create Temporary Wallet</span>
+            </button>
+            <button onClick={() => open()} className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-blue-600/80 rounded-lg hover:bg-blue-500/80 transition-colors">
+                 <span className="text-lg font-semibold">Connect with Mobile Wallet</span>
             </button>
         </div>
       </div>
