@@ -1,27 +1,12 @@
 import React, { useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount } from '@web3modal/ethers/react'
+import { projectId, metadata, mainnet } from './config';
+import { Wallet, TestTube2 } from 'lucide-react';
 
 interface LoginPageProps {
   onLogin: (address: string) => void;
   addLog: (msg: string) => void;
-}
-
-const projectId = '6ddf763974f1ef900e5d30cfd8e339c8'
-
-const mainnet = {
-  chainId: 1,
-  name: 'Ethereum',
-  currency: 'ETH',
-  explorerUrl: 'https://etherscan.io',
-  rpcUrl: 'https://cloudflare-eth.com'
-}
-
-const metadata = {
-  name: 'CryptoSpin.ai',
-  description: 'CryptoSpin.ai - A decentralized gaming experience',
-  url: 'https://cryptospin.ai',
-  icons: ['https://avatars.mywebsite.com/public/a0c201f9-f153-4b53-933e-635532b6951b.png']
 }
 
 const ethersConfig = defaultConfig({
@@ -93,6 +78,7 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
                 onClick={() => open()}
                 className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-blue-600/80 rounded-lg hover:bg-blue-500/80 transition-colors"
             >
+                <Wallet className="w-6 h-6" />
                 <span className="text-lg font-semibold">Connect Wallet</span>
             </button>
              <p className="text-xs text-center text-zinc-500">Use browser extension or WalletConnect</p>
@@ -112,6 +98,7 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
                 onClick={handleTempWallet}
                 className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity"
             >
+                <TestTube2 className="w-6 h-6" />
                 <span className="text-lg font-semibold">Use a Temporary Wallet</span>
             </button>
             <p className="text-xs text-center text-zinc-500">For testing and development purposes.</p>
