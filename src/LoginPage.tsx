@@ -37,10 +37,20 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
 
 
   const handleTempWallet = async () => {
-    addLog("Creating a temporary wallet for development...");
-    const randomWallet = ethers.Wallet.createRandom();
-    const address = randomWallet.address;
-    addLog(`Created temporary wallet: ${address.slice(0,6)}...${address.slice(-4)}`);
+    addLog("Looking for or creating a temporary wallet for development...");
+    let wallet;
+    const tempWalletPrivateKey = localStorage.getItem('tempWalletPrivateKey');
+
+    if (tempWalletPrivateKey) {
+        wallet = new ethers.Wallet(tempWalletPrivateKey);
+        addLog("Found existing temporary wallet.");
+    } else {
+        wallet = ethers.Wallet.createRandom();
+        localStorage.setItem('tempWalletPrivateKey', wallet.privateKey);
+        addLog("Created a new temporary wallet.");
+    }
+    const address = wallet.address;
+    addLog(`Using temporary wallet: ${address.slice(0,6)}...${address.slice(-4)}`);
 
     try {
         const response = await fetch('/api/auth', {
@@ -61,8 +71,12 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
     }
   };
 
+  useEffect(() => {
+    handleTempWallet();
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-white">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-primary-dark text-white">
       <div className="w-full max-w-md p-8 space-y-8 bg-zinc-900 rounded-xl shadow-lg border border-zinc-800">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
@@ -76,7 +90,7 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
         <div className="flex flex-col space-y-4">
             <button
                 onClick={() => open()}
-                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-blue-600/80 rounded-lg hover:bg-blue-500/80 transition-colors"
+                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-primary-yellow rounded-lg hover:bg-yellow-400 transition-colors text-primary-dark"
             >
                 <Wallet className="w-6 h-6" />
                 <span className="text-lg font-semibold">Connect Wallet</span>
@@ -96,7 +110,7 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
         <div className="flex flex-col space-y-4">
             <button
                 onClick={handleTempWallet}
-                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-primary-yellow text-primary-dark rounded-lg hover:bg-yellow-400 transition-opacity"
             >
                 <TestTube2 className="w-6 h-6" />
                 <span className="text-lg font-semibold">Use a Temporary Wallet</span>
