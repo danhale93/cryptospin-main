@@ -71,10 +71,6 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
     }
   };
 
-  useEffect(() => {
-    handleTempWallet();
-  }, []);
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-primary-dark text-white">
       <div className="w-full max-w-md p-8 space-y-8 bg-zinc-900 rounded-xl shadow-lg border border-zinc-800">
