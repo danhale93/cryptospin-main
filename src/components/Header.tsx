@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Activity, Wallet, PlusCircle } from 'lucide-react';
+import { Activity, Wallet, PlusCircle, ArrowUpRight } from 'lucide-react';
 
 interface HeaderProps {
   houseLiquidity: number;
@@ -12,6 +12,7 @@ interface HeaderProps {
   spinning: boolean;
   autoSpins: number;
   onShowDeposit: () => void;
+  onShowWithdraw: () => void;
   onLogout: () => void;
 }
 
@@ -24,6 +25,7 @@ const Header = ({
   spinning,
   autoSpins,
   onShowDeposit,
+  onShowWithdraw,
   onLogout
 }: HeaderProps) => {
   return (
@@ -45,9 +47,14 @@ const Header = ({
           <div className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-full shadow-inner">
             <Wallet className="w-3 h-3 text-zinc-500" />
             <span className="font-mono font-medium text-emerald-400 text-xs">${balance.toFixed(2)}</span>
-            <button onClick={onShowDeposit} className="ml-1">
-              <PlusCircle className="w-3.5 h-3.5 text-zinc-600 hover:text-emerald-400 transition-colors" />
-            </button>
+            <div className="flex items-center gap-0.5 ml-1">
+              <button onClick={onShowDeposit} title="Deposit">
+                <PlusCircle className="w-3.5 h-3.5 text-zinc-600 hover:text-emerald-400 transition-colors" />
+              </button>
+              <button onClick={onShowWithdraw} title="Withdraw">
+                <ArrowUpRight className="w-3.5 h-3.5 text-zinc-600 hover:text-red-400 transition-colors" />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button 
