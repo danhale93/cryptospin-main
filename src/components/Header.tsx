@@ -1,10 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Activity, PlusCircle, ArrowUpRight, ShieldCheck, Zap } from 'lucide-react';
 import MarketSentiment from './MarketSentiment';
 import JackpotDisplay from './JackpotDisplay';
-import { motion } from 'framer-motion';
+import { useTrade } from '../hooks/useTrade';
 
 interface HeaderProps {
   houseLiquidity: number;
@@ -21,6 +22,7 @@ interface HeaderProps {
   onShowWithdraw: () => void;
   onLogout: () => void;
   sentimentData: { sentiment: any, status: string, score: number };
+  addLog?: (msg: string) => void; // Added addLog prop
 }
 
 const Header = ({
@@ -37,7 +39,8 @@ const Header = ({
   onShowDeposit,
   onShowWithdraw,
   onLogout,
-  sentimentData
+  sentimentData,
+  addLog
 }: HeaderProps) => {
   const getRank = (lvl: number) => {
     if (lvl >= 50) return { label: 'WHALE', color: 'text-purple-400', bg: 'bg-purple-500/10' };
@@ -49,6 +52,15 @@ const Header = ({
   const rank = getRank(level);
   const xpToNextLevel = level * 100;
   const xpProgress = (xp / xpToNextLevel) * 100;
+
+  // PayID modal state
+  const [showPayIDModal, setShowPayIDModal] = useState(false);
+
+  const handleDepositViaPayID = (amount: number) => {
+    if (addLog) addLog(`[PAYID] Manual deposit of $${amount} confirmed.`);
+    onShowDeposit();
+    setShowPayIDModal(false);
+  };
 
   return (
     <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md z-30 shrink-0 h-14 flex items-center">
@@ -90,7 +102,11 @@ const Header = ({
             <div className="flex items-center gap-1.5">
               <span className="font-mono font-bold text-emerald-400 text-xs">${balance.toFixed(2)}</span>
               <div className="flex items-center gap-0.5">
-                <button onClick={onShowDeposit} className="p-0.5 hover:bg-zinc-800 rounded-full transition-colors">
+                {/* Deposit button now opens PayID modal */}
+                <button 
+                  onClick={() => setShowPayIDModal(true)} 
+                  className="p-0.5 hover:bg-zinc-800 rounded-full transition-colors"
+                >
                   <PlusCircle className="w-4 h-4 text-zinc-500 hover:text-emerald-400" />
                 </button>
                 <button onClick={onShowWithdraw} className="p-0.5 hover:bg-zinc-800 rounded-full transition-colors">
@@ -110,6 +126,48 @@ const Header = ({
         </div>
       </div>
     </header>
+  );
+};
+
+// PayID Modal - moved here to avoid circular imports
+const PayIDModal = ({ onClose, onDeposit, addLog }: any) => {
+  const payId = 'support$payid.crypto.com';
+
+  const handleDeposit = () => {
+    const amount = prompt("Enter the amount you sent (simulated):", "100");
+    if (amount && !isNaN(Number(amount))) {
+      onDeposit(Number(amount));
+      if (addLog) addLog(`[PAYID] Manual deposit of $${amount} confirmed.`);
+      onClose();
+    } else {
+      if (addLog) addLog('[PAYID] Invalid amount entered.');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="w-full max-w-sm p-6 bg-zinc-900 rounded-xl shadow-lg border border-zinc-800">
+        <h2 className="text-xl font-bold text-center text-emerald-400">Deposit via PayID</h2>
+        <p className="text-sm text-zinc-400 text-center mt-2">
+          Send funds to the following PayID from your exchange or wallet.
+        </p>
+        <div className="my-4 p-3 bg-zinc-950 rounded-lg border border-zinc-700 text-center">
+          <p className="text-xs text-zinc-500">PayID</p>
+          <p className="text-lg font-mono text-white">{payId}</p>
+        </div>
+        <div className="text-xs text-zinc-500 text-center">
+          <p>This is a simulated process. After sending, manually confirm the deposit amount below.</p>
+        </div>
+        <div className="mt-4 flex flex-col gap-2">
+            <button onClick={handleDeposit} className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-900 font-bold rounded-lg transition-colors">
+                Confirm Deposit
+            </button>
+            <button onClick={onClose} className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg transition-colors">
+                Close
+            </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

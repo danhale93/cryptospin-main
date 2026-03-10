@@ -8,6 +8,7 @@ import ControlPanel from './ControlPanel';
 import StatsPanel from './StatsPanel';
 import GlobalTicker from './GlobalTicker';
 import { useTrade } from '../hooks/useTrade';
+import { BET_AMOUNTS } from '../constants/game'; // Added import
 
 interface TradeLayoutProps {
   walletAddress: string;
@@ -51,10 +52,11 @@ const TradeLayout = ({
         tradeResultForAnimation={trade.tradeResultForAnimation}
         spinning={trade.spinning}
         autoSpins={trade.autoSpins}
-        onShowDeposit={() => { /* handled via bonus buy */ }}
+        onShowDeposit={() => { /* now handled via PayID modal */ }}
         onShowWithdraw={() => { /* handled via withdraw modal */ }}
         onLogout={() => { /* handled by parent */ }}
         sentimentData={trade.sentimentData as any}
+        addLog={() => {}} // No-op addLog for Header
       />
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-1 sm:p-2 flex flex-col lg:flex-row gap-1 sm:gap-2 min-h-0 overflow-hidden">
@@ -95,7 +97,7 @@ const TradeLayout = ({
             onCollect={() => trade.collectWinnings(() => {})}
             onGambleMode={() => { /* gamble mode toggle */ }}
             onBonusBuy={() => trade.handleBonusBuy(() => {})}
-            betAmounts={/* need to pass bet amounts */ }
+            betAmounts={BET_AMOUNTS} // Added betAmounts prop
           />
 
           <StatsPanel 
