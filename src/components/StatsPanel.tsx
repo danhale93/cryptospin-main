@@ -170,7 +170,7 @@ const StatsPanel = ({
                     contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace', padding: '4px' }} 
                     itemStyle={{ color: '#34d399' }} 
                     formatter={(v: number) => [`$${v.toFixed(2)}`, 'Balance']} 
-                    labelFormatter={(l) => `Trade ${l}`}
+                    labelFormatter={(l) => `Trade ${l}`} 
                   />
                   <ReferenceLine y={1000} stroke="#3f3f46" strokeDasharray="3 3" />
                   <Line 
