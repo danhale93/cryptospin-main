@@ -62,7 +62,6 @@ export default function App() {
       initialHouseTvl={userData.houseTvl}
       initialXp={userData.xp}
       initialLevel={userData.level}
-      onLogout={handleLogout}
     />
   );
 }

@@ -1,0 +1,1 @@
+export const BET_AMOUNTS = [0.5, 1, 2, 5, 10, 50, 100, 500, 1000];

@@ -15,6 +15,19 @@ db.exec(`
   );
 `);
 
+// Add multiplier columns if they don't exist
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN multiplier REAL DEFAULT 1`);
+} catch (e) {
+  // Column already exists
+}
+
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN multiplier_spins_remaining INTEGER DEFAULT 0`);
+} catch (e) {
+  // Column already exists
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS house (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -254,6 +254,7 @@ app.post('/api/bonus-buy', (req, res) => {
     const cost = betAmount * 50;
     let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address) as any;
     
+    if (!user) return res.status(400).json({ error: "User not found" });
     if (user.balance < cost) return res.status(400).json({ error: "Insufficient funds for Bonus Buy" });
     
     db.prepare('UPDATE users SET balance = balance - ?, free_spins = free_spins + 5, free_spin_bet_amount = ? WHERE address = ?')

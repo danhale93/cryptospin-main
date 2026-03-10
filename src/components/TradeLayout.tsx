@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import TradeLayout from '../components/TradeLayout';
 import { useTrade } from '../hooks/useTrade';
 import { useUser } from '../hooks/useUser';
 import { useApp } from '../hooks/useApp';
@@ -43,16 +44,89 @@ export default function TradeLayout({
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showBonusBuyModal, setShowBonusBuyModal] = useState(false);
 
+  // Generate sample quests based on actual state
+  const generateQuests = (): Quest[] => {
+    const currentBalance = trade.balance;
+    const tradeCount = trade.tradeCount;
+    const freeSpins = trade.freeSpins;
+    const level = trade.level;
+
+    return [
+      {
+        id: 1,
+        title: 'First Spin',
+        description: 'Make your first spin',
+        progress: tradeCount > 0 ? 1 : 0,
+        target: 1,
+        reward: 10,
+        completed: tradeCount > 0,
+        category: 'trading'
+      },
+      {
+        id: 2,
+        title: 'High Roller',
+        description: 'Reach $10,000 balance',
+        progress: Math.min(currentBalance, 10000),
+        target: 10000,
+        reward: 100,
+        completed: currentBalance >= 10000,
+        category: 'balance'
+      },
+      {
+        id: 3,
+        title: 'Spin Master',
+        description: 'Use 100 free spins',
+        progress: Math.max(0, 100 - freeSpins),
+        target: 100,
+        reward: 50,
+        completed: freeSpins >= 100,
+        category: 'spins'
+      },
+      {
+        id: 4,
+        title: 'Level 10',
+        description: 'Reach level 10',
+        progress: level,
+        target: 10,
+        reward: 75,
+        completed: level >= 10,
+        category: 'achievements'
+      },
+      {
+        id: 5,
+        title: 'Whale Status',
+        description: 'Reach $50,000 balance',
+        progress: Math.min(currentBalance, 50000),
+        target: 50000,
+        reward: 500,
+        completed: currentBalance >= 50000,
+        category: 'balance'
+      },
+      {
+        id: 6,
+        title: 'Degen Trader',
+        description: 'Complete 100 trades',
+        progress: tradeCount,
+        target: 100,
+        reward: 100,
+        completed: tradeCount >= 100,
+        category: 'trading'
+      }
+    ];
+  };
+
   const handleBonusBuy = (type: string, cost: number, spins: number, multiplier?: number) => {
     if (trade.balance < cost) {
       addLog('[BONUS BUY] Insufficient balance!');
       return;
     }
 
+    // Deduct cost immediately for UX
     trade.setBalance(prev => prev - cost);
     trade.setFreeSpins(prev => prev + spins);
     if (multiplier && multiplier > 1) {
       trade.setMultiplier(prev => Math.max(prev, multiplier));
+      trade.setMultiplierSpinsRemaining(prev => prev + 10); // 10 spins with multiplier
     }
 
     addLog(`[BONUS BUY] Purchased ${type} for $${cost}. Added ${spins} free spins${multiplier ? ` and ${multiplier}x multiplier` : ''}!`);
@@ -78,33 +152,21 @@ export default function TradeLayout({
     }
   };
 
-  const sampleQuests: Quest[] = [
-    { id: 1, title: 'First Spin', description: 'Make your first spin', progress: trade.tradeCount > 0 ? 1 : 0, target: 1, reward: 10, completed: trade.tradeCount > 0, category: 'trading' },
-    { id: 2, title: 'High Roller', description: 'Reach $10,000 balance', progress: trade.balance, target: 10000, reward: 100, completed: trade.balance >= 10000, category: 'balance' },
-    { id: 3, title: 'Spin Master', description: 'Use 100 free spins', progress: 100 - trade.freeSpins, target: 100, reward: 50, completed: trade.freeSpins >= 100, category: 'spins' },
-    { id: 4, title: 'Level 10', description: 'Reach level 10', progress: trade.level, target: 10, reward: 75, completed: trade.level >= 10, category: 'achievements' },
-  ];
-
-  const sampleLeaderboard: LeaderboardUser[] = [
-    { address: '0x1234...5678', balance: 25000, rank: 1, change: 12.5 },
-    { address: '0x8765...4321', balance: 18000, rank: 2, change: 8.3 },
-    { address: '0xabcd...efgh', balance: 15000, rank: 3, change: -2.1 },
-    { address: walletAddress, balance: trade.balance, rank: 42, change: 0 },
-  ];
+  const quests = generateQuests();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white">
       <Header
         houseLiquidity={trade.houseTvl}
-        jackpot={5000}
+        jackpot={trade.jackpot}
         balance={trade.balance}
         level={trade.level}
         xp={trade.xp}
         walletAddress={walletAddress}
         isWithdrawing={false}
         tradeResultForAnimation={trade.tradeResultForAnimation}
-        spinning={false}
-        autoSpins={0}
+        spinning={trade.spinning}
+        autoSpins={trade.autoSpins}
         onShowDeposit={() => {}}
         onShowWithdraw={() => setShowWithdrawModal(true)}
         onLogout={() => {}}
@@ -116,40 +178,42 @@ export default function TradeLayout({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-6">
             <SlotMachine
-              grid={[]}
-              spinning={false}
-              isStopping={false}
-              winningCells={[]}
-              losingCells={[]}
-              tradeResultForAnimation={null}
-              onAnimationComplete={() => {}}
-              bet={0}
-              winAmount={0}
-              activeTrade={null}
-              riskLevel="MED"
+              grid={trade.grid}
+              spinning={trade.spinning}
+              isStopping={trade.isStopping}
+              winningCells={trade.winningCells}
+              losingCells={trade.losingCells}
+              tradeResultForAnimation={trade.tradeResultForAnimation}
+              onAnimationComplete={() => {
+                setTradeResultForAnimation(null);
+              }}
+              bet={trade.bet}
+              winAmount={trade.winAmount}
+              activeTrade={trade.activeTrade}
+              riskLevel={trade.riskLevel}
             />
 
             <ControlPanel
-              riskLevel="MED"
-              setRiskLevel={() => {}}
-              bet={0}
-              setBet={() => {}}
-              spinning={false}
-              gambleMode={false}
-              tradeResultForAnimation={null}
-              autoSpins={0}
-              setAutoSpins={() => {}}
-              turboMode={false}
-              setTurboMode={() => {}}
+              riskLevel={trade.riskLevel}
+              setRiskLevel={trade.setRiskLevel}
+              bet={trade.bet}
+              setBet={trade.setBet}
+              spinning={trade.spinning}
+              gambleMode={trade.gambleMode}
+              tradeResultForAnimation={trade.tradeResultForAnimation}
+              autoSpins={trade.autoSpins}
+              setAutoSpins={trade.setAutoSpins}
+              turboMode={trade.turboMode}
+              setTurboMode={trade.setTurboMode}
               balance={trade.balance}
               freeSpins={trade.freeSpins}
               isLoggedIn={!!walletAddress}
               winAmount={trade.winAmount}
               houseLiquidity={trade.houseTvl}
-              onSpin={() => {}}
-              onStop={() => {}}
-              onCollect={() => {}}
-              onGambleMode={() => {}}
+              onSpin={() => trade.onSpin(trade.bet)}
+              onStop={trade.onStop}
+              onCollect={trade.onCollect}
+              onGambleMode={() => trade.setGambleMode(true)}
               onBonusBuy={() => setShowBonusBuyModal(true)}
               betAmounts={BET_AMOUNTS}
               multiplier={trade.multiplier}
@@ -158,15 +222,15 @@ export default function TradeLayout({
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-2">
               {[
-                { id: 'stats', label: 'Stats', icon: BarChart3 },
-                { id: 'leaderboard', label: 'Leaderboard', icon: TrendingUp },
-                { id: 'quests', label: 'Quests', icon: Activity },
-                { id: 'chat', label: 'Chat', icon: MessageSquare },
-                { id: 'ai', label: 'AI', icon: Brain },
+                { id: 'stats', label: 'Stats', icon: 'BarChart3' },
+                { id: 'leaderboard', label: 'Leaderboard', icon: 'TrendingUp' },
+                { id: 'quests', label: 'Quests', icon: 'Activity' },
+                { id: 'chat', label: 'Chat', icon: 'MessageSquare' },
+                { id: 'ai', label: 'AI', icon: 'Brain' },
               ].map((tab) => {
-                const Icon = tab.icon;
+                const IconComponent = require('lucide-react')[tab.icon as keyof typeof require('lucide-react')];
                 return (
                   <button
                     key={tab.id}
@@ -177,14 +241,14 @@ export default function TradeLayout({
                         : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800'
                     }`}
                   >
-                    <Icon size={16} />
+                    <IconComponent size={16} />
                     {tab.label}
                   </button>
                 );
               })}
             </div>
 
-            <div className="h-[400px]">
+            <div className="h-[500px]">
               {activeTab === 'stats' && (
                 <StatsComponent
                   balance={trade.balance}
@@ -195,13 +259,13 @@ export default function TradeLayout({
               )}
               {activeTab === 'leaderboard' && (
                 <LeaderboardComponent
-                  leaderboard={sampleLeaderboard}
+                  leaderboard={trade.leaderboard}
                   currentAddress={walletAddress}
                 />
               )}
               {activeTab === 'quests' && (
                 <QuestsComponent
-                  quests={sampleQuests}
+                  quests={quests}
                   balance={trade.balance}
                   tradeCount={trade.tradeCount}
                   freeSpins={trade.freeSpins}
@@ -210,18 +274,18 @@ export default function TradeLayout({
               )}
               {activeTab === 'chat' && (
                 <ChatComponent
-                  messages={[]}
-                  inputText={''}
-                  setInputText={() => {}}
-                  handleSendMessage={() => {}}
+                  messages={trade.messages}
+                  inputText={trade.inputText}
+                  setInputText={trade.setInputText}
+                  handleSendMessage={trade.onSendMessage}
                   currentAddress={walletAddress}
                 />
               )}
               {activeTab === 'ai' && (
                 <AIComponent
-                  aiAlpha={trade.aiAlpha || "Market's cooked. Signal lost in the mempool. Just HODL."}
+                  aiAlpha={trade.aiAlpha}
                   isAiLoading={trade.isAiLoading}
-                  onRefreshAi={onRefreshAi}
+                  onRefreshAi={trade.onRefreshAi}
                   balance={trade.balance}
                   tradeCount={trade.tradeCount}
                   sentimentData={trade.sentimentData}

@@ -29,7 +29,7 @@ export default function TradePage({
       initialBalance={trade.balance}
       initialWinAmount={trade.winAmount}
       initialFreeSpins={trade.freeSpins}
-      initialHouseTvl={trade.houseLiquidity}
+      initialHouseTvl={trade.houseTvl}
       initialXp={trade.xp}
       initialLevel={trade.level}
       onLogout={() => { /* handle logout */ }}

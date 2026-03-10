@@ -1,9 +1,8 @@
 "use client";
 
 import React from 'react';
-import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, Tooltip, ReferenceLine, Area, AreaChart } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, YAxis, XAxis, Tooltip, ReferenceLine } from 'recharts';
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
 interface StatsComponentProps {
   balance: number;
@@ -11,6 +10,22 @@ interface StatsComponentProps {
   chartData: Array<{ trade: number; balance: number }>;
   initialBalance: number;
 }
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-[9px] font-mono shadow-xl">
+        <div className="text-zinc-400">Trade #{data.trade}</div>
+        <div className="text-emerald-400">Balance: ${data.balance.toFixed(2)}</div>
+        <div className={`font-bold ${data.balance >= 1000 ? 'text-emerald-400' : 'text-red-400'}`}>
+          PnL: ${(data.balance - 1000).toFixed(2)}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function StatsComponent({
   balance,
@@ -21,21 +36,17 @@ export default function StatsComponent({
   const pnl = balance - initialBalance;
   const pnlPercentage = ((pnl / initialBalance) * 100).toFixed(2);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-[9px] font-mono">
-          <div className="text-zinc-400">Trade #{data.trade}</div>
-          <div className="text-emerald-400">Balance: ${data.balance.toFixed(2)}</div>
-          <div className={`font-bold ${data.balance >= initialBalance ? 'text-emerald-400' : 'text-red-400'}`}>
-            PnL: ${(data.balance - initialBalance).toFixed(2)}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Calculate win rate
+  const wins = chartData.filter((d, i) => i > 0 && d.balance > chartData[i-1].balance).length;
+  const winRate = tradeCount > 0 ? ((wins / tradeCount) * 100).toFixed(0) : '0';
+
+  // Calculate max drawdown
+  const drawdowns = chartData.map(d => initialBalance - d.balance).filter(d => d > 0);
+  const maxDrawdown = drawdowns.length > 0 ? Math.max(...drawdowns) : 0;
+
+  // Calculate average trade
+  const totalPnL = Math.abs(pnl);
+  const avgTrade = tradeCount > 0 ? (totalPnL / tradeCount).toFixed(2) : '0.00';
 
   return (
     <div className="h-full flex flex-col">
@@ -100,19 +111,19 @@ export default function StatsComponent({
         <div className="text-center">
           <div className="text-[7px] text-zinc-500 uppercase">Win Rate</div>
           <div className="text-[10px] font-bold text-emerald-400">
-            {tradeCount > 0 ? `${((chartData.filter(d => d.balance > initialBalance).length / tradeCount) * 100).toFixed(0)}%` : '0%'}
+            {winRate}%
           </div>
         </div>
         <div className="text-center">
           <div className="text-[7px] text-zinc-500 uppercase">Avg Trade</div>
           <div className="text-[10px] font-bold text-white">
-            {tradeCount > 0 ? `$${(Math.abs(pnl) / tradeCount).toFixed(2)}` : '$0.00'}
+            ${avgTrade}
           </div>
         </div>
         <div className="text-center">
           <div className="text-[7px] text-zinc-500 uppercase">Max Drawdown</div>
           <div className="text-[10px] font-bold text-red-400">
-            {tradeCount > 0 ? `$${Math.min(...chartData.map(d => d.balance - initialBalance)).toFixed(2)}` : '$0.00'}
+            ${maxDrawdown.toFixed(2)}
           </div>
         </div>
       </div>
