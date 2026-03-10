@@ -11,6 +11,7 @@ import ControlPanel from '../components/ControlPanel';
 import StatsPanel from '../components/StatsPanel';
 import GamblePanel from '../components/GamblePanel';
 import GlobalTicker from '../components/GlobalTicker';
+import BigWinOverlay from '../components/BigWinOverlay';
 import { useAudio } from '../hooks/useAudio';
 import { useTrade } from '../hooks/useTrade';
 import { BET_AMOUNTS, SUITS } from '../constants/game';
@@ -41,9 +42,10 @@ export default function TradePage({
   });
 
   const [logs, setLogs] = useState<string[]>(["Welcome! Set your bet and risk, then hit Execute."]);
-  const [activeTab, setActiveTab] = useState<'chart' | 'history' | 'ai' | 'leaderboard' | 'logs'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'history' | 'ai' | 'leaderboard' | 'logs' | 'chat'>('chart');
   const [showPayIDModal, setShowPayIDModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showBigWin, setShowBigWin] = useState(false);
   const [leaderboard, setLeaderboard] = useState<{ address: string, balance: number }[]>([]);
   const [tradeHistory, setTradeHistory] = useState<any[]>([]);
 
@@ -90,6 +92,11 @@ export default function TradePage({
         playSound('win');
         trade.setWinningCells(Array.from({length: 5}, (_, i) => ({r:1, c:i})));
         addLog(`[TX] ${trade.activeTrade?.name || 'Trade'} closed in PROFIT! +$${trade.winAmount.toFixed(2)}`);
+        
+        if (trade.winAmount >= trade.bet * 50) {
+            setShowBigWin(true);
+        }
+        
         trade.setTradeResultForAnimation(null);
         if (trade.pendingFreeSpins > 0) trade.setShowFreeSpinsBonus(true);
     } else if (result === 'loss') {
@@ -104,6 +111,21 @@ export default function TradePage({
             if (trade.pendingFreeSpins > 0) trade.setShowFreeSpinsBonus(true);
         }, trade.turboMode ? 500 : 1500); 
     }
+  };
+
+  const handleBonusBuy = async () => {
+    try {
+        const res = await fetch('/api/bonus-buy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: walletAddress, betAmount: trade.bet })
+        });
+        const data = await res.json();
+        if (data.error) return addLog(`ERROR: ${data.error}`);
+        trade.setBalance(data.user.balance);
+        trade.setFreeSpins(data.user.free_spins);
+        addLog(`[API] Bonus Buy successful! 5 Free Spins added.`);
+    } catch (e) { addLog('ERROR: Bonus Buy failed.'); }
   };
 
   const handleDeposit = async (amount: number) => {
@@ -139,6 +161,7 @@ export default function TradePage({
       <AnimatePresence>{showPayIDModal && <PayIDModal onClose={() => setShowPayIDModal(false)} onDeposit={handleDeposit} addLog={addLog} />}</AnimatePresence>
       <AnimatePresence>{showWithdrawModal && <WithdrawModal balance={trade.balance} onClose={() => setShowWithdrawModal(false)} onWithdraw={handleWithdraw} />}</AnimatePresence>
       <AnimatePresence>{trade.showFreeSpinsBonus && <FreeSpinsBonus spins={trade.pendingFreeSpins} onStart={() => { trade.setShowFreeSpinsBonus(false); trade.setPendingFreeSpins(0); }} />}</AnimatePresence>
+      <AnimatePresence>{showBigWin && <BigWinOverlay amount={trade.winAmount} onComplete={() => setShowBigWin(false)} />}</AnimatePresence>
 
       <Header 
         houseLiquidity={trade.houseLiquidity}
@@ -205,6 +228,7 @@ export default function TradePage({
             onStop={trade.handleStop}
             onCollect={() => trade.collectWinnings(addLog)}
             onGambleMode={() => { playSound('click'); trade.setGambleMode(true); }}
+            onBonusBuy={handleBonusBuy}
             betAmounts={BET_AMOUNTS}
           />
 

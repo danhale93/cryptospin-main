@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart2, Info, Brain, RefreshCw, Trophy, History } from 'lucide-react';
+import { BarChart2, Info, Brain, RefreshCw, Trophy, History, MessageSquare, Send } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
 
 interface TradeRecord {
@@ -15,9 +15,17 @@ interface TradeRecord {
   timestamp: string;
 }
 
+interface Message {
+  id: number;
+  address: string;
+  text: string;
+  is_ai: boolean;
+  timestamp: string;
+}
+
 interface StatsPanelProps {
-  activeTab: 'chart' | 'history' | 'ai' | 'leaderboard' | 'logs';
-  setActiveTab: (tab: 'chart' | 'history' | 'ai' | 'leaderboard' | 'logs') => void;
+  activeTab: 'chart' | 'history' | 'ai' | 'leaderboard' | 'logs' | 'chat';
+  setActiveTab: (tab: any) => void;
   balance: number;
   tradeCount: number;
   chartData: any[];
@@ -44,6 +52,44 @@ const StatsPanel = ({
   tradeHistory,
   currentAddress
 }: StatsPanelProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch('/api/messages');
+      const data = await res.json();
+      setMessages(data);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
+    try {
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: currentAddress, text: inputText })
+      });
+      setInputText('');
+      fetchMessages();
+    } catch (e) {}
+  };
+
   return (
     <div className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl flex flex-col overflow-hidden shadow-xl min-h-0">
       <div className="bg-zinc-900/80 border-b border-zinc-800 px-1 py-1 flex items-center gap-0.5 shrink-0 overflow-x-auto no-scrollbar">
@@ -54,6 +100,14 @@ const StatsPanel = ({
           }`}
         >
           <BarChart2 className="w-3 h-3" /> CHART
+        </button>
+        <button 
+          onClick={() => setActiveTab('chat')} 
+          className={`px-2 py-1 rounded text-[9px] font-bold transition-colors flex items-center gap-1 shrink-0 ${
+            activeTab === 'chat' ? 'bg-zinc-800 text-pink-400' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <MessageSquare className="w-3 h-3" /> CHAT
         </button>
         <button 
           onClick={() => setActiveTab('history')} 
@@ -78,14 +132,6 @@ const StatsPanel = ({
           }`}
         >
           <Trophy className="w-3 h-3"/> RANKS
-        </button>
-        <button 
-          onClick={() => setActiveTab('logs')} 
-          className={`px-2 py-1 rounded text-[9px] font-bold transition-colors flex items-center gap-1 shrink-0 ${
-            activeTab === 'logs' ? 'bg-zinc-900 text-zinc-400' : 'text-zinc-600 hover:text-zinc-400'
-          }`}
-        >
-          <Info className="w-3 h-3"/> LOGS
         </button>
       </div>
       <div className="p-2 flex-1 overflow-y-auto min-h-0">
@@ -125,6 +171,39 @@ const StatsPanel = ({
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        ) : activeTab === 'chat' ? (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
+              {messages.map((msg) => (
+                <div key={msg.id} className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[8px] font-black uppercase tracking-tighter ${msg.is_ai ? 'text-pink-500' : 'text-zinc-500'}`}>
+                      {msg.is_ai ? 'DEGEN_BOT' : `${msg.address.slice(0,4)}...${msg.address.slice(-2)}`}
+                    </span>
+                    <span className="text-[7px] text-zinc-700 font-mono">
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className={`text-[10px] font-mono leading-tight ${msg.is_ai ? 'text-pink-300 italic' : 'text-zinc-300'}`}>
+                    {msg.text}
+                  </p>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+            <form onSubmit={handleSendMessage} className="flex gap-1 shrink-0">
+              <input 
+                type="text" 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Talk trash..."
+                className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-[10px] font-mono text-white focus:outline-none focus:border-pink-500/50"
+              />
+              <button type="submit" className="p-1 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400">
+                <Send className="w-3 h-3" />
+              </button>
+            </form>
           </div>
         ) : activeTab === 'history' ? (
           <div className="h-full flex flex-col">

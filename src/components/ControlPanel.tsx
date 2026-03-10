@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, Square, RotateCw, Zap, FastForward } from 'lucide-react';
+import { Play, Square, RotateCw, Zap, FastForward, ShoppingCart } from 'lucide-react';
 
 interface ControlPanelProps {
   riskLevel: string;
@@ -25,6 +25,7 @@ interface ControlPanelProps {
   onStop: () => void;
   onCollect: () => void;
   onGambleMode: () => void;
+  onBonusBuy: () => void;
   betAmounts: number[];
 }
 
@@ -49,6 +50,7 @@ const ControlPanel = ({
   onStop,
   onCollect,
   onGambleMode,
+  onBonusBuy,
   betAmounts
 }: ControlPanelProps) => {
   const isActionDisabled = spinning || gambleMode || !!tradeResultForAnimation || autoSpins > 0;
@@ -57,14 +59,23 @@ const ControlPanel = ({
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-xl shrink-0">
       <div className="mb-1.5 flex justify-between items-center">
         <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1">Risk Profile</label>
-        <button 
-          onClick={() => setTurboMode(!turboMode)}
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black transition-all ${
-            turboMode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-          }`}
-        >
-          <FastForward className="w-2.5 h-2.5" /> TURBO
-        </button>
+        <div className="flex gap-1">
+          <button 
+            onClick={onBonusBuy}
+            disabled={isActionDisabled || balance < (bet * 50)}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black bg-pink-500/20 text-pink-400 border border-pink-500/50 hover:bg-pink-500/30 transition-all disabled:opacity-50"
+          >
+            <ShoppingCart className="w-2.5 h-2.5" /> BUY BONUS (${(bet * 50).toFixed(0)})
+          </button>
+          <button 
+            onClick={() => setTurboMode(!turboMode)}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black transition-all ${
+              turboMode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+            }`}
+          >
+            <FastForward className="w-2.5 h-2.5" /> TURBO
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-4 gap-1 mb-2">
         {['LOW', 'MED', 'HIGH', 'DEGEN'].map(r => (

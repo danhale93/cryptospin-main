@@ -65,6 +65,30 @@ app.post('/api/ai-alpha', async (req, res) => {
     }
 });
 
+app.get('/api/messages', (req, res) => {
+    const messages = db.prepare('SELECT * FROM messages ORDER BY timestamp DESC LIMIT 50').all();
+    res.json(messages.reverse());
+});
+
+app.post('/api/messages', async (req, res) => {
+    const { address, text } = req.body;
+    db.prepare('INSERT INTO messages (address, text) VALUES (?, ?)').run(address, text);
+    
+    // Trigger AI response occasionally
+    if (Math.random() > 0.7) {
+        try {
+            const prompt = `You are a toxic, high-energy crypto degen in a chatroom. Someone just said: "${text}". 
+            Reply with a very short (max 10 words), snarky, slang-heavy response. No emojis.`;
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const result = await model.generateContent(prompt);
+            const aiText = result.response.text().trim();
+            db.prepare('INSERT INTO messages (address, text, is_ai) VALUES (?, ?, ?)').run('DEGEN_BOT', aiText, 1);
+        } catch (e) {}
+    }
+    
+    res.json({ success: true });
+});
+
 app.get('/api/leaderboard', (req, res) => {
     try {
         const leaders = db.prepare('SELECT address, balance FROM users ORDER BY balance DESC LIMIT 10').all();
@@ -81,10 +105,6 @@ app.get('/api/global-wins', (req, res) => {
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch global wins" });
     }
-});
-
-app.get('/api/strategies', (req, res) => {
-    res.json(STRATEGIES);
 });
 
 app.post('/api/auth', (req, res) => {
@@ -152,7 +172,6 @@ app.post('/api/spin', (req, res) => {
         isFreeSpin = true;
     } else {
         db.prepare('UPDATE users SET balance = balance - ? WHERE address = ?').run(betAmount, address);
-        // 1% of bet goes to jackpot
         db.prepare('UPDATE house SET jackpot = jackpot + ?').run(betAmount * 0.01);
     }
 
@@ -174,14 +193,14 @@ app.post('/api/spin', (req, res) => {
     const riskStrategies = STRATEGIES[riskLevel as keyof typeof STRATEGIES];
     const strategy = riskStrategies[Math.floor(Math.random() * riskStrategies.length)];
 
-    const isWin = Math.random() < 0.4; // 40% win chance
+    const isWin = Math.random() < 0.4; 
     let winAmount = 0;
     let isJackpotWin = false;
 
-    if (btcCount === 15) { // 5x3 grid full of BTC
+    if (btcCount === 15) { 
         const house = db.prepare('SELECT jackpot FROM house').get() as any;
         winAmount = house.jackpot;
-        db.prepare('UPDATE house SET jackpot = 5000').run(); // Reset jackpot
+        db.prepare('UPDATE house SET jackpot = 5000').run(); 
         isJackpotWin = true;
     } else if (isWin) {
         const line = finalGrid[1];
@@ -213,6 +232,20 @@ app.post('/api/spin', (req, res) => {
         houseTvl: house.tvl,
         jackpot: house.jackpot
     });
+});
+
+app.post('/api/bonus-buy', (req, res) => {
+    const { address, betAmount } = req.body;
+    const cost = betAmount * 50;
+    let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address) as any;
+    
+    if (user.balance < cost) return res.status(400).json({ error: "Insufficient funds for Bonus Buy" });
+    
+    db.prepare('UPDATE users SET balance = balance - ?, free_spins = free_spins + 5, free_spin_bet_amount = ? WHERE address = ?')
+      .run(cost, betAmount, address);
+    
+    user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
+    res.json({ user });
 });
 
 app.post('/api/gamble', (req, res) => {

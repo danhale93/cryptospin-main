@@ -40,4 +40,14 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    address TEXT,
+    text TEXT,
+    is_ai BOOLEAN DEFAULT 0,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 export default db;
