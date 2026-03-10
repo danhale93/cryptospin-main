@@ -71,17 +71,17 @@ export default function TradePage({
   useEffect(() => {
     fetchLeaderboard();
     fetchTradeHistory();
-  }, [trade.balance, trade.tradeCount]); // Refresh when balance or trade count changes
+  }, [trade.balance, trade.tradeCount]);
 
   useEffect(() => {
     if ((trade.freeSpins > 0 || trade.autoSpins > 0) && !trade.spinning && !trade.tradeResultForAnimation && trade.winAmount === 0 && !trade.gambleMode && !trade.showFreeSpinsBonus) {
         const timer = setTimeout(() => {
             trade.handleSpin(addLog);
             if (trade.autoSpins > 0) trade.setAutoSpins(prev => prev - 1);
-        }, 1200);
+        }, trade.turboMode ? 400 : 1200);
         return () => clearTimeout(timer);
     }
-  }, [trade.freeSpins, trade.autoSpins, trade.spinning, trade.winAmount, trade.tradeResultForAnimation, trade.gambleMode, trade.showFreeSpinsBonus]);
+  }, [trade.freeSpins, trade.autoSpins, trade.spinning, trade.winAmount, trade.tradeResultForAnimation, trade.gambleMode, trade.showFreeSpinsBonus, trade.turboMode]);
 
   const handleAnimationComplete = () => {
     const result = trade.tradeResultForAnimation;
@@ -101,7 +101,7 @@ export default function TradePage({
             trade.setGrid(trade.generateGrid()); 
             trade.setTradeResultForAnimation(null);
             if (trade.pendingFreeSpins > 0) trade.setShowFreeSpinsBonus(true);
-        }, 1500); 
+        }, trade.turboMode ? 500 : 1500); 
     }
   };
 
@@ -148,6 +148,7 @@ export default function TradePage({
         onShowDeposit={() => setShowPayIDModal(true)}
         onShowWithdraw={() => setShowWithdrawModal(true)}
         onLogout={onLogout}
+        sentimentData={trade.sentimentData as any}
       />
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-1 sm:p-2 flex flex-col lg:flex-row gap-1 sm:gap-2 min-h-0 overflow-hidden">
@@ -187,6 +188,8 @@ export default function TradePage({
             tradeResultForAnimation={trade.tradeResultForAnimation}
             autoSpins={trade.autoSpins}
             setAutoSpins={trade.setAutoSpins}
+            turboMode={trade.turboMode}
+            setTurboMode={trade.setTurboMode}
             balance={trade.balance}
             freeSpins={trade.freeSpins}
             isLoggedIn={true}

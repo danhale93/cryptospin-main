@@ -24,6 +24,29 @@ app.post('/api/gemini', async (req, res) => {
   }
 });
 
+app.get('/api/market-sentiment', async (req, res) => {
+    try {
+        const recentTrades = db.prepare('SELECT is_win, win_amount FROM trade_history ORDER BY timestamp DESC LIMIT 20').all() as any[];
+        const winCount = recentTrades.filter(t => t.is_win).length;
+        const sentiment = winCount > 10 ? 'BULLISH' : winCount > 5 ? 'NEUTRAL' : 'BEARISH';
+        
+        const prompt = `The current market sentiment is ${sentiment} based on ${winCount}/20 recent winning trades. 
+        Give a 5-word snarky market status update for a crypto trading app. Use all caps. No emojis.`;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        
+        res.json({ 
+            sentiment, 
+            status: text.trim(),
+            score: (winCount / 20) * 100
+        });
+    } catch (error) {
+        res.json({ sentiment: 'NEUTRAL', status: 'MARKET IS TOTALLY COOKED', score: 50 });
+    }
+});
+
 app.post('/api/ai-alpha', async (req, res) => {
     const { address } = req.body;
     try {

@@ -27,8 +27,10 @@ export const useTrade = (walletAddress: string, initialData: any) => {
   const [showFreeSpinsBonus, setShowFreeSpinsBonus] = useState(false);
   const [pendingFreeSpins, setPendingFreeSpins] = useState(0);
   const [autoSpins, setAutoSpins] = useState(0);
+  const [turboMode, setTurboMode] = useState(false);
   const [aiAlpha, setAiAlpha] = useState<string>("Waiting for market signal...");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [sentimentData, setSentimentData] = useState({ sentiment: 'NEUTRAL', status: 'SCANNING MARKET...', score: 50 });
   const isStoppingRef = useRef(false);
   const spinStartTime = useRef(0);
 
@@ -48,6 +50,22 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       setIsAiLoading(false);
     }
   };
+
+  const fetchSentiment = async () => {
+    try {
+      const res = await fetch('/api/market-sentiment');
+      const data = await res.json();
+      setSentimentData(data);
+    } catch (e) {
+      console.error("Sentiment fetch failed");
+    }
+  };
+
+  useEffect(() => {
+    fetchSentiment();
+    const interval = setInterval(fetchSentiment, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSpin = async (addLog: (msg: string) => void) => {
     if (spinning || winAmount > 0 || tradeResultForAnimation) return;
@@ -85,7 +103,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       setActiveTrade({ name: strategy.name, steps: strategy.steps, currentStep: 0, isWin });
       addLog(`[API] Initiating ${strategy.name} at $${currentBet} (${riskLevel} Risk)...`);
 
-      const spinDuration = 2000 + Math.random() * 1000;
+      const spinDuration = turboMode ? 500 : 2000 + Math.random() * 1000;
       const spinInterval = setInterval(() => {
           if(isStoppingRef.current || (Date.now() - spinStartTime.current > spinDuration)) {
               clearInterval(spinInterval);
@@ -110,9 +128,9 @@ export const useTrade = (walletAddress: string, initialData: any) => {
               setTradeCount(c => c + 1);
               setTradeResultForAnimation(isWin ? 'win' : 'loss');
               
-              // Fetch AI Alpha after every 3 trades or on big wins
               if ((tradeCount + 1) % 3 === 0 || isWin) {
                 fetchAiAlpha();
+                fetchSentiment();
               }
           }
       }, 100);
@@ -157,7 +175,8 @@ export const useTrade = (walletAddress: string, initialData: any) => {
           if(n.length>0) n[n.length-1].balance -= originalWinAmount; 
           return n; 
         }); 
-        fetchAiAlpha(); // Get AI reaction to the loss
+        fetchAiAlpha();
+        fetchSentiment();
       }
     } catch (e) { 
       addLog(`ERROR: Gamble request failed.`); 
@@ -181,7 +200,8 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       setWinningCells([]); 
       setGrid(generateGrid()); 
       addLog('Profits secured to wallet.');
-      fetchAiAlpha(); // Get AI reaction to the collection
+      fetchAiAlpha();
+      fetchSentiment();
     } catch (e) { 
       addLog(`ERROR: Collect request failed.`); 
     }
@@ -216,7 +236,9 @@ export const useTrade = (walletAddress: string, initialData: any) => {
     showFreeSpinsBonus, setShowFreeSpinsBonus,
     pendingFreeSpins, setPendingFreeSpins,
     autoSpins, setAutoSpins,
+    turboMode, setTurboMode,
     aiAlpha, isAiLoading, fetchAiAlpha,
+    sentimentData, fetchSentiment,
     isStopping: isStoppingRef.current,
     handleSpin,
     handleStop,

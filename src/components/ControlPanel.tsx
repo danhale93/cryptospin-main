@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, Square, RotateCw, Zap } from 'lucide-react';
+import { Play, Square, RotateCw, Zap, FastForward } from 'lucide-react';
 
 interface ControlPanelProps {
   riskLevel: string;
@@ -14,6 +14,8 @@ interface ControlPanelProps {
   tradeResultForAnimation: any;
   autoSpins: number;
   setAutoSpins: (val: any) => void;
+  turboMode: boolean;
+  setTurboMode: (val: boolean) => void;
   balance: number;
   freeSpins: number;
   isLoggedIn: boolean;
@@ -36,6 +38,8 @@ const ControlPanel = ({
   tradeResultForAnimation,
   autoSpins,
   setAutoSpins,
+  turboMode,
+  setTurboMode,
   balance,
   freeSpins,
   isLoggedIn,
@@ -51,28 +55,36 @@ const ControlPanel = ({
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-xl shrink-0">
-      <div className="mb-1.5">
-        <label className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-1 mb-0.5">Risk Profile</label>
-        <div className="grid grid-cols-4 gap-1">
-          {['LOW', 'MED', 'HIGH', 'DEGEN'].map(r => (
-            <button 
-              key={r} 
-              onClick={() => setRiskLevel(r)} 
-              disabled={isActionDisabled}
-              className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${
-                riskLevel === r 
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]' 
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+      <div className="mb-1.5 flex justify-between items-center">
+        <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-1">Risk Profile</label>
+        <button 
+          onClick={() => setTurboMode(!turboMode)}
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black transition-all ${
+            turboMode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+          }`}
+        >
+          <FastForward className="w-2.5 h-2.5" /> TURBO
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-1 mb-2">
+        {['LOW', 'MED', 'HIGH', 'DEGEN'].map(r => (
+          <button 
+            key={r} 
+            onClick={() => setRiskLevel(r)} 
+            disabled={isActionDisabled}
+            className={`py-1 rounded border font-mono text-[9px] transition-all disabled:opacity-50 ${
+              riskLevel === r 
+                ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]' 
+                : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+            }`}
+          >
+            {r}
+          </button>
+        ))}
       </div>
 
       <div className="mb-2">
-        <label className="block text-[9px] font-medium text-zinc-400 mb-0.5 uppercase tracking-wider">Trade Size</label>
+        <label className="block text-[9px] font-black text-zinc-400 mb-0.5 uppercase tracking-widest">Trade Size</label>
         <div className="grid grid-cols-5 gap-1">
           {betAmounts.slice(0, 5).map((amount) => (
             <motion.button 
