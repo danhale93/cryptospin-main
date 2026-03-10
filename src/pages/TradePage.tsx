@@ -2,6 +2,7 @@
 
 import React from 'react';
 import TradeLayout from '../components/TradeLayout';
+import { useTrade } from '../hooks/useTrade';
 
 export default function TradePage({
   walletAddress,
@@ -10,19 +11,28 @@ export default function TradePage({
   initialFreeSpins,
   initialHouseTvl,
   initialXp,
-  initialLevel,
-  onLogout
+  initialLevel
 }: any) {
+  const trade = useTrade({
+    walletAddress,
+    initialBalance,
+    initialWinAmount,
+    initialFreeSpins,
+    initialHouseTvl,
+    initialXp,
+    initialLevel
+  });
+
   return (
     <TradeLayout
       walletAddress={walletAddress}
-      initialBalance={initialBalance}
-      initialWinAmount={initialWinAmount}
-      initialFreeSpins={initialFreeSpins}
-      initialHouseTvl={initialHouseTvl}
-      initialXp={initialXp}
-      initialLevel={initialLevel}
-      onLogout={onLogout}
+      initialBalance={trade.balance}
+      initialWinAmount={trade.winAmount}
+      initialFreeSpins={trade.freeSpins}
+      initialHouseTvl={trade.houseLiquidity}
+      initialXp={trade.xp}
+      initialLevel={trade.level}
+      onLogout={() => { /* handle logout */ }}
     />
   );
 }
