@@ -212,7 +212,6 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       setGambleMode(false); 
       setActiveTrade(null); 
       setWinningCells([]); 
-      setGrid(generateGrid()); 
       addLog('Profits secured to wallet.');
       fetchAiAlpha();
       fetchSentiment();

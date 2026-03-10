@@ -43,7 +43,7 @@ const WithdrawModal = ({ balance, onClose, onWithdraw }: WithdrawModalProps) => 
         </div>
 
         <div className="mb-6 p-3 bg-zinc-950 rounded-xl border border-zinc-800">
-          <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Available Balance</div>
+          <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-1.5">Available Balance</div>
           <div className="text-2xl font-mono font-bold text-emerald-400">${balance.toFixed(2)}</div>
         </div>
 
