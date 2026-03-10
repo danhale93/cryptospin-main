@@ -222,7 +222,7 @@ const StatsPanel = ({
           <div className="h-full flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[9px] text-amber-400 font-bold uppercase tracking-widest">Degen Quests</span>
-              <Target className="w-3 h-3 text-amber-400" />
+              <Target className="w-3 h-3" />
             </div>
             <div className="flex-1 space-y-2">
               {quests.map((q) => (
