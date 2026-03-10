@@ -104,11 +104,18 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       addLog(`[API] Initiating ${strategy.name} at $${currentBet} (${riskLevel} Risk)...`);
 
       const spinDuration = turboMode ? 500 : 2000 + Math.random() * 1000;
+      const stepDuration = spinDuration / strategy.steps.length;
+
       const spinInterval = setInterval(() => {
-          if(isStoppingRef.current || (Date.now() - spinStartTime.current > spinDuration)) {
+          const elapsed = Date.now() - spinStartTime.current;
+          const currentStep = Math.min(Math.floor(elapsed / stepDuration), strategy.steps.length - 1);
+          
+          setActiveTrade(prev => prev ? { ...prev, currentStep } : null);
+
+          if(isStoppingRef.current || (elapsed > spinDuration)) {
               clearInterval(spinInterval);
               isStoppingRef.current = false;
-              setActiveTrade(prev => prev ? { ...prev, currentStep: 4 } : null);
+              setActiveTrade(prev => prev ? { ...prev, currentStep: strategy.steps.length } : null);
               setGrid(finalGrid);
               setSpinning(false);
               setBalance(user.balance);

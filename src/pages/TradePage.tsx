@@ -162,6 +162,7 @@ export default function TradePage({
           onAnimationComplete={handleAnimationComplete}
           bet={trade.bet}
           winAmount={trade.winAmount}
+          activeTrade={trade.activeTrade}
         />
 
         <div className="w-full lg:w-72 flex flex-col gap-1 sm:gap-2 shrink-0 min-h-0">

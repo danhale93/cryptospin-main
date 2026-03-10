@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TradeStreamColumn from './TradeStreamColumn';
 import ReelResultAnimation from './ReelResultAnimation';
+import StrategyOverlay from './StrategyOverlay';
 
 interface Token {
   id: string;
@@ -22,6 +23,7 @@ interface SlotMachineProps {
   onAnimationComplete: () => void;
   bet: number;
   winAmount: number;
+  activeTrade: { name: string, steps: string[], currentStep: number } | null;
 }
 
 const SlotMachine = ({
@@ -33,7 +35,8 @@ const SlotMachine = ({
   tradeResultForAnimation,
   onAnimationComplete,
   bet,
-  winAmount
+  winAmount,
+  activeTrade
 }: SlotMachineProps) => {
   return (
     <div className="flex-1 flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 relative shadow-2xl overflow-hidden min-h-0">
@@ -50,6 +53,13 @@ const SlotMachine = ({
               />
             )}
           </AnimatePresence>
+          
+          <AnimatePresence>
+            {spinning && activeTrade && (
+              <StrategyOverlay activeTrade={activeTrade} />
+            )}
+          </AnimatePresence>
+
           {grid.map((row, i) => row.map((token, j) => (
             <div 
               key={`${i}-${j}`} 
