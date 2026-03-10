@@ -10,6 +10,7 @@ import SlotMachine from '../components/SlotMachine';
 import ControlPanel from '../components/ControlPanel';
 import StatsPanel from '../components/StatsPanel';
 import GamblePanel from '../components/GamblePanel';
+import GlobalTicker from '../components/GlobalTicker';
 import { useAudio } from '../hooks/useAudio';
 import { useTrade } from '../hooks/useTrade';
 import { BET_AMOUNTS, SUITS } from '../constants/game';
@@ -113,6 +114,7 @@ export default function TradePage({
         else { 
           trade.setBalance(data.balance); 
           trade.setHouseLiquidity(data.houseTvl);
+          trade.setJackpot(data.jackpot);
           addLog(`[API] Deposit of $${amount} successful. New balance: $${data.balance.toFixed(2)}`); 
         }
     } catch (e) { addLog('ERROR: Deposit request failed.'); }
@@ -126,6 +128,7 @@ export default function TradePage({
         else { 
           trade.setBalance(data.balance); 
           trade.setHouseLiquidity(data.houseTvl);
+          trade.setJackpot(data.jackpot);
           addLog(`[API] Withdrawal of $${amount} successful. New balance: $${data.balance.toFixed(2)}`); 
         }
     } catch (e) { addLog('ERROR: Withdrawal request failed.'); }
@@ -139,6 +142,7 @@ export default function TradePage({
 
       <Header 
         houseLiquidity={trade.houseLiquidity}
+        jackpot={trade.jackpot}
         balance={trade.balance}
         walletAddress={walletAddress}
         isWithdrawing={false}
@@ -163,6 +167,7 @@ export default function TradePage({
           bet={trade.bet}
           winAmount={trade.winAmount}
           activeTrade={trade.activeTrade}
+          riskLevel={trade.riskLevel}
         />
 
         <div className="w-full lg:w-72 flex flex-col gap-1 sm:gap-2 shrink-0 min-h-0">
@@ -219,6 +224,7 @@ export default function TradePage({
           />
         </div>
       </main>
+      <GlobalTicker />
     </div>
   );
 }

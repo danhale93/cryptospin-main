@@ -1,11 +1,13 @@
 "use client";
 
 import React from 'react';
-import { Activity, Wallet, PlusCircle, ArrowUpRight, ShieldCheck, Zap } from 'lucide-react';
+import { Activity, Wallet, PlusCircle, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import MarketSentiment from './MarketSentiment';
+import JackpotDisplay from './JackpotDisplay';
 
 interface HeaderProps {
   houseLiquidity: number;
+  jackpot: number;
   balance: number;
   walletAddress: string;
   isWithdrawing: boolean;
@@ -20,6 +22,7 @@ interface HeaderProps {
 
 const Header = ({
   houseLiquidity,
+  jackpot,
   balance,
   walletAddress,
   isWithdrawing,
@@ -58,9 +61,8 @@ const Header = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden lg:flex flex-col items-end">
-            <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">HOUSE TVL</span>
-            <span className="text-xs font-mono font-bold text-purple-400">${houseLiquidity.toLocaleString()}</span>
+          <div className="hidden lg:block">
+            <JackpotDisplay amount={jackpot} />
           </div>
 
           <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 pl-2 pr-1 py-1 rounded-full shadow-inner">

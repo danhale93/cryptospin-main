@@ -16,13 +16,14 @@ db.exec(`
 db.exec(`
   CREATE TABLE IF NOT EXISTS house (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tvl REAL NOT NULL DEFAULT 100000
+    tvl REAL NOT NULL DEFAULT 100000,
+    jackpot REAL NOT NULL DEFAULT 5000
   );
 `);
 
 const houseExists = db.prepare('SELECT COUNT(*) as count FROM house').get() as { count: number };
 if (houseExists.count === 0) {
-    db.prepare('INSERT INTO house (tvl) VALUES (?)').run(100000);
+    db.prepare('INSERT INTO house (tvl, jackpot) VALUES (?, ?)').run(100000, 5000);
 }
 
 db.exec(`

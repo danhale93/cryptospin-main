@@ -10,6 +10,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
   const { playSound } = useAudio();
   const [balance, setBalance] = useState(initialData.balance);
   const [houseLiquidity, setHouseLiquidity] = useState(initialData.houseTvl);
+  const [jackpot, setJackpot] = useState(initialData.jackpot || 5000);
   const [bet, setBet] = useState(1);
   const [grid, setGrid] = useState(generateGrid());
   const [spinning, setSpinning] = useState(false);
@@ -99,7 +100,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
         return; 
       }
 
-      const { finalGrid, isWin, strategy, scatters, user, houseTvl } = data;
+      const { finalGrid, isWin, strategy, scatters, user, houseTvl, jackpot: newJackpot } = data;
       setActiveTrade({ name: strategy.name, steps: strategy.steps, currentStep: 0, isWin });
       addLog(`[API] Initiating ${strategy.name} at $${currentBet} (${riskLevel} Risk)...`);
 
@@ -122,6 +123,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
               setFreeSpins(user.free_spins);
               setWinAmount(user.win_amount);
               setHouseLiquidity(houseTvl);
+              setJackpot(newJackpot);
 
               if (scatters >= 3) {
                 playSound('freeSpinTrigger');
@@ -159,10 +161,11 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       });
       const data = await res.json();
       if (data.error) return addLog(`ERROR: ${data.error}`);
-      const { won, drawnCard, newWinAmount, houseTvl } = data;
+      const { won, drawnCard, newWinAmount, houseTvl, jackpot: newJackpot } = data;
       setGambleCard(drawnCard);
       await new Promise(r => setTimeout(r, 1000));
       setHouseLiquidity(houseTvl);
+      setJackpot(newJackpot);
       if (won) { 
         playSound('gambleWin'); 
         setWinAmount(newWinAmount); 
@@ -226,6 +229,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
   return {
     balance, setBalance,
     houseLiquidity, setHouseLiquidity,
+    jackpot, setJackpot,
     bet, setBet,
     grid, setGrid,
     spinning,

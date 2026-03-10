@@ -24,6 +24,7 @@ interface SlotMachineProps {
   bet: number;
   winAmount: number;
   activeTrade: { name: string, steps: string[], currentStep: number } | null;
+  riskLevel: string;
 }
 
 const SlotMachine = ({
@@ -36,10 +37,21 @@ const SlotMachine = ({
   onAnimationComplete,
   bet,
   winAmount,
-  activeTrade
+  activeTrade,
+  riskLevel
 }: SlotMachineProps) => {
+  const isDegen = riskLevel === 'DEGEN';
+
   return (
-    <div className="flex-1 flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 relative shadow-2xl overflow-hidden min-h-0">
+    <motion.div 
+      animate={spinning && isDegen ? { 
+        x: [0, -2, 2, -2, 2, 0],
+        y: [0, 1, -1, 1, -1, 0],
+        filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(0deg)"]
+      } : {}}
+      transition={spinning && isDegen ? { repeat: Infinity, duration: 0.1 } : {}}
+      className="flex-1 flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 relative shadow-2xl overflow-hidden min-h-0"
+    >
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
       <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
         <div className="relative grid grid-cols-5 gap-1 sm:gap-2 w-full max-w-[320px] sm:max-w-[420px] aspect-[5/3] mb-2 shrink-0 z-10">
@@ -102,7 +114,7 @@ const SlotMachine = ({
           )))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

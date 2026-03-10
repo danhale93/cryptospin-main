@@ -74,6 +74,15 @@ app.get('/api/leaderboard', (req, res) => {
     }
 });
 
+app.get('/api/global-wins', (req, res) => {
+    try {
+        const wins = db.prepare('SELECT user_address as address, win_amount as amount, strategy_name as strategy FROM trade_history WHERE is_win = 1 ORDER BY timestamp DESC LIMIT 10').all();
+        res.json(wins);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch global wins" });
+    }
+});
+
 app.get('/api/strategies', (req, res) => {
     res.json(STRATEGIES);
 });
@@ -87,7 +96,7 @@ app.post('/api/auth', (req, res) => {
         user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     }
     const house = db.prepare('SELECT * FROM house').get() as any;
-    res.json({ user, houseTvl: house.tvl });
+    res.json({ user, houseTvl: house.tvl, jackpot: house.jackpot });
 });
 
 app.post('/api/deposit', (req, res) => {
@@ -98,7 +107,7 @@ app.post('/api/deposit', (req, res) => {
         db.prepare('UPDATE house SET tvl = tvl + ?').run(amount);
         const updatedUser = db.prepare('SELECT * FROM users WHERE address = ?').get(address) as any;
         const house = db.prepare('SELECT * FROM house').get() as any;
-        res.json({ balance: updatedUser.balance, houseTvl: house.tvl });
+        res.json({ balance: updatedUser.balance, houseTvl: house.tvl, jackpot: house.jackpot });
     } else {
         res.status(404).json({ error: "User not found" });
     }
@@ -113,7 +122,7 @@ app.post('/api/withdraw', (req, res) => {
             db.prepare('UPDATE house SET tvl = tvl - ?').run(amount);
             const updatedUser = db.prepare('SELECT * FROM users WHERE address = ?').get(address) as any;
             const house = db.prepare('SELECT * FROM house').get() as any;
-            res.json({ balance: updatedUser.balance, houseTvl: house.tvl, message: `Withdrawal of $${amount} successful.` });
+            res.json({ balance: updatedUser.balance, houseTvl: house.tvl, jackpot: house.jackpot, message: `Withdrawal of $${amount} successful.` });
         } else {
             res.json({ error: "Insufficient balance." });
         }
@@ -143,10 +152,13 @@ app.post('/api/spin', (req, res) => {
         isFreeSpin = true;
     } else {
         db.prepare('UPDATE users SET balance = balance - ? WHERE address = ?').run(betAmount, address);
+        // 1% of bet goes to jackpot
+        db.prepare('UPDATE house SET jackpot = jackpot + ?').run(betAmount * 0.01);
     }
 
     const finalGrid = generateGrid();
     const scatters = finalGrid.flat().filter(t => t.id === 'SCATTER').length;
+    const btcCount = finalGrid.flat().filter(t => t.id === 'BTC').length;
 
     if (scatters >= 3) {
         const betForNewFreeSpins = hadFreeSpinsBefore ? user.free_spin_bet_amount : betAmount;
@@ -164,36 +176,42 @@ app.post('/api/spin', (req, res) => {
 
     const isWin = Math.random() < 0.4; // 40% win chance
     let winAmount = 0;
+    let isJackpotWin = false;
 
-    if (isWin) {
+    if (btcCount === 15) { // 5x3 grid full of BTC
+        const house = db.prepare('SELECT jackpot FROM house').get() as any;
+        winAmount = house.jackpot;
+        db.prepare('UPDATE house SET jackpot = 5000').run(); // Reset jackpot
+        isJackpotWin = true;
+    } else if (isWin) {
         const line = finalGrid[1];
         const winMultiplier = line.reduce((acc, token) => acc + token.mult, 0);
         if (isFreeSpin) {
             winAmount = user.free_spin_bet_amount * winMultiplier;
-            db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(winAmount, address);
         } else {
             winAmount = betAmount * winMultiplier;
-            db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(winAmount, address);
         }
-    } else {
-        db.prepare('UPDATE users SET win_amount = 0 WHERE address = ?').run(address);
     }
+    
+    db.prepare('UPDATE users SET win_amount = ? WHERE address = ?').run(winAmount, address);
     
     db.prepare(`
       INSERT INTO trade_history (user_address, bet_amount, risk_level, is_win, win_amount, strategy_name)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(address, isFreeSpin ? 0 : betAmount, riskLevel, isWin ? 1 : 0, winAmount, strategy.name);
+    `).run(address, isFreeSpin ? 0 : betAmount, riskLevel, (isWin || isJackpotWin) ? 1 : 0, winAmount, isJackpotWin ? "JACKPOT SNIPE" : strategy.name);
 
     user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     const house = db.prepare('SELECT * FROM house').get() as any;
 
     res.json({
         finalGrid,
-        isWin,
-        strategy,
+        isWin: isWin || isJackpotWin,
+        isJackpotWin,
+        strategy: isJackpotWin ? { name: "JACKPOT SNIPE", steps: ["Targeting House Pool", "Exploiting Oracle", "Draining Liquidity", "JACKPOT SECURED"] } : strategy,
         scatters,
         user,
-        houseTvl: house.tvl
+        houseTvl: house.tvl,
+        jackpot: house.jackpot
     });
 });
 
@@ -227,7 +245,8 @@ app.post('/api/gamble', (req, res) => {
         won,
         drawnCard,
         newWinAmount: user.win_amount,
-        houseTvl: house.tvl
+        houseTvl: house.tvl,
+        jackpot: house.jackpot
     });
 });
 
