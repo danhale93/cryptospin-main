@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart2, Info, Brain, RefreshCw, Trophy, History, MessageSquare, Send } from 'lucide-react';
+import { BarChart2, Brain, RefreshCw, Trophy, History, MessageSquare, Send, Target, CheckCircle2 } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
 
 interface TradeRecord {
@@ -24,12 +24,11 @@ interface Message {
 }
 
 interface StatsPanelProps {
-  activeTab: 'chart' | 'history' | 'ai' | 'leaderboard' | 'logs' | 'chat';
+  activeTab: 'chart' | 'history' | 'ai' | 'leaderboard' | 'quests' | 'chat';
   setActiveTab: (tab: any) => void;
   balance: number;
   tradeCount: number;
   chartData: any[];
-  logs: string[];
   aiAlpha: string;
   isAiLoading: boolean;
   onRefreshAi: () => void;
@@ -44,7 +43,6 @@ const StatsPanel = ({
   balance,
   tradeCount,
   chartData,
-  logs,
   aiAlpha,
   isAiLoading,
   onRefreshAi,
@@ -90,6 +88,13 @@ const StatsPanel = ({
     } catch (e) {}
   };
 
+  const quests = [
+    { id: 1, title: 'The High Roller', desc: 'Execute a trade with $100+ size', progress: tradeHistory.some(t => t.bet_amount >= 100) ? 100 : 0 },
+    { id: 2, title: 'Risk Taker', desc: 'Win a trade at DEGEN risk level', progress: tradeHistory.some(t => t.risk_level === 'DEGEN' && t.is_win) ? 100 : 0 },
+    { id: 3, title: 'Profit Hunter', desc: 'Accumulate $5000 in total balance', progress: Math.min(100, (balance / 5000) * 100) },
+    { id: 4, title: 'Veteran Trader', desc: 'Complete 50 total trades', progress: Math.min(100, (tradeCount / 50) * 100) }
+  ];
+
   return (
     <div className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl flex flex-col overflow-hidden shadow-xl min-h-0">
       <div className="bg-zinc-900/80 border-b border-zinc-800 px-1 py-1 flex items-center gap-0.5 shrink-0 overflow-x-auto no-scrollbar">
@@ -108,6 +113,14 @@ const StatsPanel = ({
           }`}
         >
           <MessageSquare className="w-3 h-3" /> CHAT
+        </button>
+        <button 
+          onClick={() => setActiveTab('quests')} 
+          className={`px-2 py-1 rounded text-[9px] font-bold transition-colors flex items-center gap-1 shrink-0 ${
+            activeTab === 'quests' ? 'bg-zinc-800 text-amber-400' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <Target className="w-3 h-3" /> QUESTS
         </button>
         <button 
           onClick={() => setActiveTab('history')} 
@@ -205,6 +218,33 @@ const StatsPanel = ({
               </button>
             </form>
           </div>
+        ) : activeTab === 'quests' ? (
+          <div className="h-full flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[9px] text-amber-400 font-bold uppercase tracking-widest">Degen Quests</span>
+              <Target className="w-3 h-3 text-amber-400" />
+            </div>
+            <div className="flex-1 space-y-2">
+              {quests.map((q) => (
+                <div key={q.id} className="bg-zinc-900/50 border border-zinc-800 rounded p-2">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <div className="text-[10px] font-bold text-zinc-200">{q.title}</div>
+                      <div className="text-[8px] text-zinc-500">{q.desc}</div>
+                    </div>
+                    {q.progress >= 100 && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                  </div>
+                  <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${q.progress}%` }}
+                      className={`h-full ${q.progress >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : activeTab === 'history' ? (
           <div className="h-full flex flex-col">
             <div className="flex justify-between items-center mb-2">
@@ -270,7 +310,7 @@ const StatsPanel = ({
               </div>
             </div>
           </div>
-        ) : activeTab === 'leaderboard' ? (
+        ) : (
           <div className="h-full flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[9px] text-yellow-500 font-bold uppercase tracking-widest">Top Degens</span>
@@ -300,28 +340,6 @@ const StatsPanel = ({
                 </div>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-1 flex flex-col justify-end h-full font-mono text-[9px] sm:text-[10px]">
-            {logs.map((log, i) => (
-              <motion.div 
-                key={i} 
-                initial={{ opacity: 0, x: -5 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                className={`flex gap-1 ${
-                  log.includes('PROFIT') || log.includes('WON') 
-                    ? 'text-emerald-400' 
-                    : log.includes('Loss') || log.includes('RUGGED') || log.includes('failed') 
-                      ? 'text-red-400' 
-                      : log.includes('API') 
-                        ? 'text-blue-400' 
-                        : 'text-zinc-500'
-                }`}
-              >
-                <span className="shrink-0">{'>'}</span>
-                <span className="break-all">{log}</span>
-              </motion.div>
-            ))}
           </div>
         )}
       </div>

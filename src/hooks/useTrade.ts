@@ -9,6 +9,8 @@ const generateGrid = () => Array(3).fill(0).map(() => Array(5).fill(0).map(() =>
 export const useTrade = (walletAddress: string, initialData: any) => {
   const { playSound } = useAudio();
   const [balance, setBalance] = useState(initialData.balance);
+  const [level, setLevel] = useState(initialData.level || 1);
+  const [xp, setXp] = useState(initialData.xp || 0);
   const [houseLiquidity, setHouseLiquidity] = useState(initialData.houseTvl);
   const [jackpot, setJackpot] = useState(initialData.jackpot || 5000);
   const [bet, setBet] = useState(1);
@@ -122,6 +124,8 @@ export const useTrade = (walletAddress: string, initialData: any) => {
               setBalance(user.balance);
               setFreeSpins(user.free_spins);
               setWinAmount(user.win_amount);
+              setXp(user.xp);
+              setLevel(user.level);
               setHouseLiquidity(houseTvl);
               setJackpot(newJackpot);
 
@@ -228,6 +232,8 @@ export const useTrade = (walletAddress: string, initialData: any) => {
 
   return {
     balance, setBalance,
+    level, setLevel,
+    xp, setXp,
     houseLiquidity, setHouseLiquidity,
     jackpot, setJackpot,
     bet, setBet,

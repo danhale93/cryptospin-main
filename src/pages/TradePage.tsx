@@ -22,6 +22,8 @@ interface TradePageProps {
   initialWinAmount: number;
   initialFreeSpins: number;
   initialHouseTvl: number;
+  initialXp: number;
+  initialLevel: number;
   onLogout: () => void;
 }
 
@@ -31,6 +33,8 @@ export default function TradePage({
   initialWinAmount,
   initialFreeSpins,
   initialHouseTvl,
+  initialXp,
+  initialLevel,
   onLogout
 }: TradePageProps) {
   const { playSound } = useAudio();
@@ -38,11 +42,13 @@ export default function TradePage({
     balance: initialBalance,
     winAmount: initialWinAmount,
     freeSpins: initialFreeSpins,
-    houseTvl: initialHouseTvl
+    houseTvl: initialHouseTvl,
+    xp: initialXp,
+    level: initialLevel
   });
 
   const [logs, setLogs] = useState<string[]>(["Welcome! Set your bet and risk, then hit Execute."]);
-  const [activeTab, setActiveTab] = useState<'chart' | 'history' | 'ai' | 'leaderboard' | 'logs' | 'chat'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'history' | 'ai' | 'leaderboard' | 'quests' | 'chat'>('chart');
   const [showPayIDModal, setShowPayIDModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showBigWin, setShowBigWin] = useState(false);
@@ -167,6 +173,8 @@ export default function TradePage({
         houseLiquidity={trade.houseLiquidity}
         jackpot={trade.jackpot}
         balance={trade.balance}
+        level={trade.level}
+        xp={trade.xp}
         walletAddress={walletAddress}
         isWithdrawing={false}
         tradeResultForAnimation={trade.tradeResultForAnimation}
@@ -238,7 +246,6 @@ export default function TradePage({
             balance={trade.balance}
             tradeCount={trade.tradeCount}
             chartData={trade.chartData}
-            logs={logs}
             aiAlpha={trade.aiAlpha}
             isAiLoading={trade.isAiLoading}
             onRefreshAi={trade.fetchAiAlpha}

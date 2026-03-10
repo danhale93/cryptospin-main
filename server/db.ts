@@ -9,7 +9,9 @@ db.exec(`
     balance REAL NOT NULL DEFAULT 1000,
     win_amount REAL NOT NULL DEFAULT 0,
     free_spins INTEGER NOT NULL DEFAULT 0,
-    free_spin_bet_amount REAL NOT NULL DEFAULT 0
+    free_spin_bet_amount REAL NOT NULL DEFAULT 0,
+    xp INTEGER NOT NULL DEFAULT 0,
+    level INTEGER NOT NULL DEFAULT 1
   );
 `);
 

@@ -74,7 +74,6 @@ app.post('/api/messages', async (req, res) => {
     const { address, text } = req.body;
     db.prepare('INSERT INTO messages (address, text) VALUES (?, ?)').run(address, text);
     
-    // Trigger AI response occasionally
     if (Math.random() > 0.7) {
         try {
             const prompt = `You are a toxic, high-energy crypto degen in a chatroom. Someone just said: "${text}". 
@@ -111,8 +110,8 @@ app.post('/api/auth', (req, res) => {
     const { address } = req.body;
     let user = db.prepare('SELECT * FROM users WHERE address = ?').get(address) as any;
     if (!user) {
-        db.prepare('INSERT INTO users (address, balance, win_amount, free_spins, free_spin_bet_amount) VALUES (?, ?, ?, ?, ?)')
-          .run(address, 1000, 0, 0, 0);
+        db.prepare('INSERT INTO users (address, balance, win_amount, free_spins, free_spin_bet_amount, xp, level) VALUES (?, ?, ?, ?, ?, ?, ?)')
+          .run(address, 1000, 0, 0, 0, 0, 1);
         user = db.prepare('SELECT * FROM users WHERE address = ?').get(address);
     }
     const house = db.prepare('SELECT * FROM house').get() as any;
@@ -174,6 +173,22 @@ app.post('/api/spin', (req, res) => {
         db.prepare('UPDATE users SET balance = balance - ? WHERE address = ?').run(betAmount, address);
         db.prepare('UPDATE house SET jackpot = jackpot + ?').run(betAmount * 0.01);
     }
+
+    // Award XP
+    const riskMult = riskLevel === 'DEGEN' ? 4 : riskLevel === 'HIGH' ? 3 : riskLevel === 'MED' ? 2 : 1;
+    const xpGained = Math.max(1, Math.floor(betAmount * riskMult));
+    let newXp = user.xp + xpGained;
+    let newLevel = user.level;
+    const xpToNext = newLevel * 100;
+
+    if (newXp >= xpToNext) {
+        newXp -= xpToNext;
+        newLevel += 1;
+        // AI reaction to level up
+        db.prepare('INSERT INTO messages (address, text, is_ai) VALUES (?, ?, ?)').run('DEGEN_BOT', `LFG! ${address.slice(0,6)} just hit level ${newLevel}. Whale status incoming.`, 1);
+    }
+
+    db.prepare('UPDATE users SET xp = ?, level = ? WHERE address = ?').run(newXp, newLevel, address);
 
     const finalGrid = generateGrid();
     const scatters = finalGrid.flat().filter(t => t.id === 'SCATTER').length;

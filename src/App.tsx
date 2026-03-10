@@ -26,6 +26,8 @@ export default function App() {
         balance: data.user.balance,
         winAmount: data.user.win_amount,
         freeSpins: data.user.free_spins,
+        xp: data.user.xp,
+        level: data.user.level,
         houseTvl: data.houseTvl
       });
       setIsLoggedIn(true);
@@ -58,6 +60,8 @@ export default function App() {
       initialWinAmount={userData.winAmount}
       initialFreeSpins={userData.freeSpins}
       initialHouseTvl={userData.houseTvl}
+      initialXp={userData.xp}
+      initialLevel={userData.level}
       onLogout={handleLogout}
     />
   );
