@@ -186,161 +186,35 @@ const StatsPanel = ({
             </div>
           </div>
         ) : activeTab === 'chat' ? (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
-              {messages.map((msg) => (
-                <div key={msg.id} className="flex flex-col">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[8px] font-black uppercase tracking-tighter ${msg.is_ai ? 'text-pink-500' : 'text-zinc-500'}`}>
-                      {msg.is_ai ? 'DEGEN_BOT' : `${msg.address.slice(0,4)}...${msg.address.slice(-2)}`}
-                    </span>
-                    <span className="text-[7px] text-zinc-700 font-mono">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className={`text-[10px] font-mono leading-tight ${msg.is_ai ? 'text-pink-300 italic' : 'text-zinc-300'}`}>
-                    {msg.text}
-                  </p>
-                </div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
-            <form onSubmit={handleSendMessage} className="flex gap-1 shrink-0">
-              <input 
-                type="text" 
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Talk trash..."
-                className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-[10px] font-mono text-white focus:outline-none focus:border-pink-500/50"
-              />
-              <button type="submit" className="p-1 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400">
-                <Send className="w-3 h-3" />
-              </button>
-            </form>
-          </div>
+          <ChatComponent 
+            messages={messages}
+            inputText={inputText}
+            setInputText={setInputText}
+            handleSendMessage={handleSendMessage}
+            currentAddress={currentAddress}
+          />
         ) : activeTab === 'quests' ? (
-          <div className="h-full flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] text-amber-400 font-bold uppercase tracking-widest">Degen Quests</span>
-              <Target className="w-3 h-3" />
-            </div>
-            <div className="flex-1 space-y-2">
-              {quests.map((q) => (
-                <div key={q.id} className="bg-zinc-900/50 border border-zinc-800 rounded p-2">
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      <div className="text-[10px] font-bold text-zinc-200">{q.title}</div>
-                      <div className="text-[8px] text-zinc-500">{q.desc}</div>
-                    </div>
-                    {q.progress >= 100 && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
-                  </div>
-                  <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${q.progress}%` }}
-                      className={`h-full ${q.progress >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <QuestComponent 
+            quests={quests}
+            balance={balance}
+            tradeCount={tradeCount}
+            tradeHistory={tradeHistory}
+          />
         ) : activeTab === 'history' ? (
-          <div className="h-full flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">Trade History</span>
-              <span className="text-[8px] text-zinc-500 font-mono uppercase">Last {tradeHistory.length} TXs</span>
-            </div>
-            <div className="flex-1 space-y-1.5">
-              {tradeHistory.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-zinc-600 text-[10px] font-mono italic">
-                  No trades executed yet...
-                </div>
-              ) : (
-                tradeHistory.map((trade) => (
-                  <div key={trade.trade_id} className="bg-zinc-900/50 border border-zinc-800 rounded p-1.5 flex flex-col gap-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-tighter">{trade.strategy_name}</span>
-                      <span className={`text-[10px] font-mono font-bold ${trade.is_win ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {trade.is_win ? `+$${trade.win_amount.toFixed(2)}` : `-$${trade.bet_amount.toFixed(2)}`}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-[8px] font-mono text-zinc-500">
-                      <div className="flex gap-2">
-                        <span>SIZE: ${trade.bet_amount}</span>
-                        <span>RISK: {trade.risk_level}</span>
-                      </div>
-                      <span>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <HistoryComponent 
+            tradeHistory={tradeHistory}
+          />
         ) : activeTab === 'ai' ? (
-          <div className="h-full flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] text-purple-400 font-bold uppercase tracking-widest">DegenBot Analysis</span>
-              <button 
-                onClick={onRefreshAi} 
-                disabled={isAiLoading}
-                className="p-1 hover:bg-zinc-800 rounded transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3 h-3 text-zinc-500 ${isAiLoading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-            <div className="flex-1 bg-zinc-950/50 border border-purple-500/20 rounded-lg p-3 font-mono text-[11px] leading-relaxed relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
-              {isAiLoading ? (
-                <div className="flex flex-col gap-2">
-                  <div className="h-3 w-3/4 bg-zinc-800 animate-pulse rounded" />
-                  <div className="h-3 w-1/2 bg-zinc-800 animate-pulse rounded" />
-                </div>
-              ) : (
-                <motion.p 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  className="text-purple-300"
-                >
-                  {aiAlpha}
-                </motion.p>
-              )}
-              <div className="mt-4 text-[8px] text-zinc-600 uppercase tracking-tighter">
-                Powered by Gemini 1.5 Flash
-              </div>
-            </div>
-          </div>
+          <AIComponent 
+            aiAlpha={aiAlpha}
+            isAiLoading={isAiLoading}
+            onRefreshAi={onRefreshAi}
+          />
         ) : (
-          <div className="h-full flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] text-yellow-500 font-bold uppercase tracking-widest">Top Degens</span>
-              <Trophy className="w-3 h-3 text-yellow-500" />
-            </div>
-            <div className="flex-1 space-y-1">
-              {leaderboard.map((user, i) => (
-                <div 
-                  key={user.address} 
-                  className={`flex justify-between items-center p-1.5 rounded border ${
-                    user.address === currentAddress 
-                      ? 'bg-yellow-500/10 border-yellow-500/50' 
-                      : 'bg-zinc-900/50 border-zinc-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold w-3 ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-zinc-300' : i === 2 ? 'text-amber-600' : 'text-zinc-600'}`}>
-                      {i + 1}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-300">
-                      {user.address.slice(0, 6)}...{user.address.slice(-4)}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-400">
-                    ${user.balance.toFixed(0)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <LeaderboardComponent 
+            leaderboard={leaderboard}
+            currentAddress={currentAddress}
+          />
         )}
       </div>
     </div>

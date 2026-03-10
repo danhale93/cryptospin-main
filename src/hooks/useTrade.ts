@@ -37,40 +37,8 @@ export const useTrade = (walletAddress: string, initialData: any) => {
   const isStoppingRef = useRef(false);
   const spinStartTime = useRef(0);
 
-  const fetchAiAlpha = async () => {
-    setIsAiLoading(true);
-    try {
-      const res = await fetch('/api/ai-alpha', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: walletAddress })
-      });
-      const data = await res.json();
-      setAiAlpha(data.alpha);
-    } catch (e) {
-      setAiAlpha("Market's cooked. Signal lost.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  const fetchSentiment = async () => {
-    try {
-      const res = await fetch('/api/market-sentiment');
-      const data = await res.json();
-      setSentimentData(data);
-    } catch (e) {
-      console.error("Sentiment fetch failed");
-    }
-  };
-
-  useEffect(() => {
-    fetchSentiment();
-    const interval = setInterval(fetchSentiment, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSpin = async (addLog: (msg: string) => void) => {
+  // Extract logic into separate functions
+  const handleSpinInternal = async (addLog: (msg: string) => void) => {
     if (spinning || winAmount > 0 || tradeResultForAnimation) return;
     if (balance < bet && freeSpins === 0) { 
       addLog('ERROR: Insufficient funds.'); 
@@ -154,7 +122,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
     }
   };
 
-  const handleGamble = async (type: 'RED' | 'BLACK' | 'SUIT', addLog: (msg: string) => void, suitId?: string) => {
+  const handleGambleInternal = async (type: 'RED' | 'BLACK' | 'SUIT', addLog: (msg: string) => void, suitId?: string) => {
     if (winAmount <= 0) return;
     const originalWinAmount = winAmount;
     try {
@@ -197,7 +165,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
     }
   };
 
-  const collectWinnings = async (addLog: (msg: string) => void) => {
+  const collectWinningsInternal = async (addLog: (msg: string) => void) => {
     if (tradeResultForAnimation) return;
     try {
       const res = await fetch('/api/collect', { 
@@ -220,7 +188,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
     }
   };
 
-  const handleStop = () => {
+  const handleStopInternal = () => {
     if(spinning) {
       const elapsed = Date.now() - spinStartTime.current;
       if (elapsed > 500) {
@@ -256,10 +224,10 @@ export const useTrade = (walletAddress: string, initialData: any) => {
     aiAlpha, isAiLoading, fetchAiAlpha,
     sentimentData, fetchSentiment,
     isStopping: isStoppingRef.current,
-    handleSpin,
-    handleStop,
-    handleGamble,
-    collectWinnings,
+    handleSpin: (addLog) => handleSpinInternal(addLog),
+    handleStop: handleStopInternal,
+    handleGamble: (type, addLog, suitId) => handleGambleInternal(type, addLog, suitId),
+    collectWinnings: (addLog) => collectWinningsInternal(addLog),
     generateGrid
   };
 };
