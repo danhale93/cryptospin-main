@@ -40,10 +40,11 @@ export default function TradePage({
   });
 
   const [logs, setLogs] = useState<string[]>(["Welcome! Set your bet and risk, then hit Execute."]);
-  const [activeTab, setActiveTab] = useState<'chart' | 'logs' | 'ai' | 'leaderboard'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'history' | 'ai' | 'leaderboard' | 'logs'>('chart');
   const [showPayIDModal, setShowPayIDModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [leaderboard, setLeaderboard] = useState<{ address: string, balance: number }[]>([]);
+  const [tradeHistory, setTradeHistory] = useState<any[]>([]);
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
 
@@ -57,9 +58,20 @@ export default function TradePage({
     }
   };
 
+  const fetchTradeHistory = async () => {
+    try {
+      const res = await fetch(`/api/trade-history?address=${walletAddress}`);
+      const data = await res.json();
+      setTradeHistory(data);
+    } catch (e) {
+      console.error("Failed to fetch trade history", e);
+    }
+  };
+
   useEffect(() => {
     fetchLeaderboard();
-  }, [trade.balance]); // Refresh leaderboard when balance changes
+    fetchTradeHistory();
+  }, [trade.balance, trade.tradeCount]); // Refresh when balance or trade count changes
 
   useEffect(() => {
     if ((trade.freeSpins > 0 || trade.autoSpins > 0) && !trade.spinning && !trade.tradeResultForAnimation && trade.winAmount === 0 && !trade.gambleMode && !trade.showFreeSpinsBonus) {
@@ -198,6 +210,7 @@ export default function TradePage({
             isAiLoading={trade.isAiLoading}
             onRefreshAi={trade.fetchAiAlpha}
             leaderboard={leaderboard}
+            tradeHistory={tradeHistory}
             currentAddress={walletAddress}
           />
         </div>
