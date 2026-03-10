@@ -42,6 +42,15 @@ app.post('/api/ai-alpha', async (req, res) => {
     }
 });
 
+app.get('/api/leaderboard', (req, res) => {
+    try {
+        const leaders = db.prepare('SELECT address, balance FROM users ORDER BY balance DESC LIMIT 10').all();
+        res.json(leaders);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+});
+
 app.get('/api/strategies', (req, res) => {
     res.json(STRATEGIES);
 });

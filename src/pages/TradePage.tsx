@@ -40,11 +40,26 @@ export default function TradePage({
   });
 
   const [logs, setLogs] = useState<string[]>(["Welcome! Set your bet and risk, then hit Execute."]);
-  const [activeTab, setActiveTab] = useState<'chart' | 'logs' | 'ai'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'logs' | 'ai' | 'leaderboard'>('chart');
   const [showPayIDModal, setShowPayIDModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<{ address: string, balance: number }[]>([]);
 
   const addLog = (msg: string) => setLogs(p => [...p.slice(-19), msg]);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch('/api/leaderboard');
+      const data = await res.json();
+      setLeaderboard(data);
+    } catch (e) {
+      console.error("Failed to fetch leaderboard", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [trade.balance]); // Refresh leaderboard when balance changes
 
   useEffect(() => {
     if ((trade.freeSpins > 0 || trade.autoSpins > 0) && !trade.spinning && !trade.tradeResultForAnimation && trade.winAmount === 0 && !trade.gambleMode && !trade.showFreeSpinsBonus) {
@@ -182,6 +197,8 @@ export default function TradePage({
             aiAlpha={trade.aiAlpha}
             isAiLoading={trade.isAiLoading}
             onRefreshAi={trade.fetchAiAlpha}
+            leaderboard={leaderboard}
+            currentAddress={walletAddress}
           />
         </div>
       </main>
