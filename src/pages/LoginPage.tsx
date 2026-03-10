@@ -1,7 +1,9 @@
+"use client";
+
 import React, { useEffect } from 'react';
 import { ethers } from 'ethers';
 import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount } from '@web3modal/ethers/react'
-import { projectId, metadata, mainnet } from './config';
+import { projectId, metadata, mainnet } from '../config';
 import { Wallet, TestTube2 } from 'lucide-react';
 
 interface LoginPageProps {
@@ -27,7 +29,6 @@ export default function LoginPage({ onLogin, addLog }: LoginPageProps) {
   const { open } = useWeb3Modal()
   const { address, isConnected } = useWeb3ModalAccount()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (isConnected && address) {
       addLog(`Wallet connected: ${address.slice(0,6)}...${address.slice(-4)}`);
