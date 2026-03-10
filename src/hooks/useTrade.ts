@@ -27,8 +27,27 @@ export const useTrade = (walletAddress: string, initialData: any) => {
   const [showFreeSpinsBonus, setShowFreeSpinsBonus] = useState(false);
   const [pendingFreeSpins, setPendingFreeSpins] = useState(0);
   const [autoSpins, setAutoSpins] = useState(0);
+  const [aiAlpha, setAiAlpha] = useState<string>("Waiting for market signal...");
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const isStoppingRef = useRef(false);
   const spinStartTime = useRef(0);
+
+  const fetchAiAlpha = async () => {
+    setIsAiLoading(true);
+    try {
+      const res = await fetch('/api/ai-alpha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: walletAddress })
+      });
+      const data = await res.json();
+      setAiAlpha(data.alpha);
+    } catch (e) {
+      setAiAlpha("Market's cooked. Signal lost.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleSpin = async (addLog: (msg: string) => void) => {
     if (spinning || winAmount > 0 || tradeResultForAnimation) return;
@@ -90,6 +109,11 @@ export const useTrade = (walletAddress: string, initialData: any) => {
               else setChartData(prev => [...prev, { trade: tradeCount + 1, balance: user.balance }]);
               setTradeCount(c => c + 1);
               setTradeResultForAnimation(isWin ? 'win' : 'loss');
+              
+              // Fetch AI Alpha after every 3 trades or on big wins
+              if ((tradeCount + 1) % 3 === 0 || isWin) {
+                fetchAiAlpha();
+              }
           }
       }, 100);
 
@@ -133,6 +157,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
           if(n.length>0) n[n.length-1].balance -= originalWinAmount; 
           return n; 
         }); 
+        fetchAiAlpha(); // Get AI reaction to the loss
       }
     } catch (e) { 
       addLog(`ERROR: Gamble request failed.`); 
@@ -156,6 +181,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
       setWinningCells([]); 
       setGrid(generateGrid()); 
       addLog('Profits secured to wallet.');
+      fetchAiAlpha(); // Get AI reaction to the collection
     } catch (e) { 
       addLog(`ERROR: Collect request failed.`); 
     }
@@ -190,6 +216,7 @@ export const useTrade = (walletAddress: string, initialData: any) => {
     showFreeSpinsBonus, setShowFreeSpinsBonus,
     pendingFreeSpins, setPendingFreeSpins,
     autoSpins, setAutoSpins,
+    aiAlpha, isAiLoading, fetchAiAlpha,
     isStopping: isStoppingRef.current,
     handleSpin,
     handleStop,

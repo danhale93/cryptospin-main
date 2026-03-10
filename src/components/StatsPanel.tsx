@@ -2,16 +2,19 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BarChart2, Info } from 'lucide-react';
+import { BarChart2, Info, Brain, RefreshCw } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip, ReferenceLine } from 'recharts';
 
 interface StatsPanelProps {
-  activeTab: 'chart' | 'logs';
-  setActiveTab: (tab: 'chart' | 'logs') => void;
+  activeTab: 'chart' | 'logs' | 'ai';
+  setActiveTab: (tab: 'chart' | 'logs' | 'ai') => void;
   balance: number;
   tradeCount: number;
   chartData: any[];
   logs: string[];
+  aiAlpha: string;
+  isAiLoading: boolean;
+  onRefreshAi: () => void;
 }
 
 const StatsPanel = ({
@@ -20,7 +23,10 @@ const StatsPanel = ({
   balance,
   tradeCount,
   chartData,
-  logs
+  logs,
+  aiAlpha,
+  isAiLoading,
+  onRefreshAi
 }: StatsPanelProps) => {
   return (
     <div className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl flex flex-col overflow-hidden shadow-xl min-h-0">
@@ -40,6 +46,14 @@ const StatsPanel = ({
           }`}
         >
           <Info className="w-3 h-3"/> LOGS
+        </button>
+        <button 
+          onClick={() => setActiveTab('ai')} 
+          className={`px-2 py-1 rounded text-[10px] font-bold transition-colors flex items-center gap-1 ${
+            activeTab === 'ai' ? 'bg-zinc-800 text-purple-400' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <Brain className="w-3 h-3"/> AI ALPHA
         </button>
       </div>
       <div className="p-2 flex-1 overflow-y-auto min-h-0">
@@ -80,7 +94,7 @@ const StatsPanel = ({
               </ResponsiveContainer>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'logs' ? (
           <div className="space-y-1 flex flex-col justify-end h-full font-mono text-[9px] sm:text-[10px]">
             {logs.map((log, i) => (
               <motion.div 
@@ -101,6 +115,39 @@ const StatsPanel = ({
                 <span className="break-all">{log}</span>
               </motion.div>
             ))}
+          </div>
+        ) : (
+          <div className="h-full flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[9px] text-purple-400 font-bold uppercase tracking-widest">DegenBot Analysis</span>
+              <button 
+                onClick={onRefreshAi} 
+                disabled={isAiLoading}
+                className="p-1 hover:bg-zinc-800 rounded transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 text-zinc-500 ${isAiLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+            <div className="flex-1 bg-zinc-950/50 border border-purple-500/20 rounded-lg p-3 font-mono text-[11px] leading-relaxed relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+              {isAiLoading ? (
+                <div className="flex flex-col gap-2">
+                  <div className="h-3 w-3/4 bg-zinc-800 animate-pulse rounded" />
+                  <div className="h-3 w-1/2 bg-zinc-800 animate-pulse rounded" />
+                </div>
+              ) : (
+                <motion.p 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  className="text-purple-300"
+                >
+                  {aiAlpha}
+                </motion.p>
+              )}
+              <div className="mt-4 text-[8px] text-zinc-600 uppercase tracking-tighter">
+                Powered by Gemini 1.5 Flash
+              </div>
+            </div>
           </div>
         )}
       </div>

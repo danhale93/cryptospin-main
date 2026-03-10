@@ -40,7 +40,7 @@ export default function TradePage({
   });
 
   const [logs, setLogs] = useState<string[]>(["Welcome! Set your bet and risk, then hit Execute."]);
-  const [activeTab, setActiveTab] = useState<'chart' | 'logs'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'logs' | 'ai'>('chart');
   const [showPayIDModal, setShowPayIDModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
@@ -179,6 +179,9 @@ export default function TradePage({
             tradeCount={trade.tradeCount}
             chartData={trade.chartData}
             logs={logs}
+            aiAlpha={trade.aiAlpha}
+            isAiLoading={trade.isAiLoading}
+            onRefreshAi={trade.fetchAiAlpha}
           />
         </div>
       </main>

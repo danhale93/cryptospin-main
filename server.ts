@@ -24,6 +24,24 @@ app.post('/api/gemini', async (req, res) => {
   }
 });
 
+app.post('/api/ai-alpha', async (req, res) => {
+    const { address } = req.body;
+    try {
+        const trades = db.prepare('SELECT * FROM trade_history WHERE user_address = ? ORDER BY timestamp DESC LIMIT 5').all(address) as any[];
+        
+        const prompt = `You are a degenerate crypto trading bot named "DegenBot". Analyze these recent trades: ${JSON.stringify(trades)}. 
+        Give a very short (max 20 words), snarky, high-energy market update using heavy crypto slang (HODL, RUG, MOON, LFG, NFA, WAGMI). 
+        If they are winning, be hype. If losing, be toxic/funny. No emojis.`;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        res.json({ alpha: text.trim() });
+    } catch (error) {
+        res.json({ alpha: "Market's cooked. Signal lost in the mempool. Just HODL." });
+    }
+});
+
 app.get('/api/strategies', (req, res) => {
     res.json(STRATEGIES);
 });
